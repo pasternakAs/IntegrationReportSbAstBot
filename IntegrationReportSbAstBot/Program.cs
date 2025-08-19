@@ -22,7 +22,7 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(jobKey)
         .WithIdentity("ReportJob-trigger")
-        .WithCronSchedule("0 45 9 * * ?")); // каждый день в 9:00
+        .WithCronSchedule("0 0/5 * * * ?")); // каждый день в 9:00
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

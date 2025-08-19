@@ -28,7 +28,7 @@ namespace IntegrationReportSbAstBot.Class
 
             try
             {
-                const string connStr = "Server=.;Database=CDB;Trusted_Connection=True;";
+                const string connStr = "Server=172.30.201.12;Database=CDB;Trusted_Connection=True;";
                 var rows = new List<DocRow>();
 
                 using (var conn = new SqlConnection(connStr))
