@@ -1,4 +1,6 @@
 ﻿using IntegrationReportSbAstBot.Class;
+using IntegrationReportSbAstBot.Interfaces;
+using IntegrationReportSbAstBot.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Quartz;
@@ -8,8 +10,12 @@ using Telegram.Bot;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Telegram Bot
-builder.Services.AddSingleton(new TelegramBotClient("7634606068:AAG3uDPuMeCzfGz5UA5fARixigt43isFt7c"));
+// Telegram Bot - регистрируем ITelegramBotClient 
+builder.Services.AddSingleton<ITelegramBotClient>(provider =>
+    new TelegramBotClient("7634606068:AAG3uDPuMeCzfGz5UA5fARixigt43isFt7c"));
+// Сервис для управления подписчиками
+builder.Services.AddSingleton<ISubscriberService, SubscriberService>();
+builder.Services.AddSingleton<TelegramBotService>();// Регистрируем сервис
 
 // Quartz scheduler
 builder.Services.AddQuartz(q =>
@@ -22,11 +28,16 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(jobKey)
         .WithIdentity("ReportJob-trigger")
-        .WithCronSchedule("0 0/5 * * * ?")); // каждый день в 9:00
+        .WithCronSchedule("0 0/2 * * * ?"));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
-builder.Services.AddSingleton<IJobFactory, MicrosoftDependencyInjectionJobFactory>();
+//builder.Services.AddSingleton<IJobFactory, MicrosoftDependencyInjectionJobFactory>();
 
 var host = builder.Build();
+
+// Запуск бота
+var telegramBotService = host.Services.GetRequiredService<TelegramBotService>();
+await telegramBotService.StartAsync();
+
 await host.RunAsync();
