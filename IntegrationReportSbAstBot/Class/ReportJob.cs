@@ -8,6 +8,10 @@ using Telegram.Bot.Types.Enums;
 
 namespace IntegrationReportSbAstBot.Class
 {
+    /// <summary>
+    /// Задача Quartz для периодической генерации и отправки отчетов подписчикам через Telegram бота
+    /// Выполняет сбор данных, формирование HTML отчета и рассылку всем активным подписчикам
+    /// </summary>
     public class ReportJob : IJob
     {
         private readonly ITelegramBotClient _bot;
@@ -17,9 +21,13 @@ namespace IntegrationReportSbAstBot.Class
         private readonly IReportHtmlService _reportHtmlService;
 
         /// <summary>
-        /// 
+        /// Инициализирует новый экземпляр класса ReportJob
         /// </summary>
-        /// <param name="bot"></param>
+        /// <param name="bot">Клиент Telegram бота для отправки сообщений</param>
+        /// <param name="logger">Логгер для записи информации о выполнении задачи</param>
+        /// <param name="subscriberService">Сервис управления подписчиками</param>
+        /// <param name="reportService">Сервис генерации данных отчета</param>
+        /// <param name="reportHtmlService">Сервис формирования HTML отчета</param>
         public ReportJob(ITelegramBotClient bot, ILogger<ReportJob> logger, ISubscriberService subscriberService, IReportService reportService, IReportHtmlService reportHtmlService)
         {
             _bot = bot;
@@ -30,10 +38,10 @@ namespace IntegrationReportSbAstBot.Class
         }
 
         /// <summary>
-        /// 
+        /// Выполняет основную логику задачи: генерирует отчет и отправляет его всем подписчикам
         /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
+        /// <param name="context">Контекст выполнения задачи Quartz</param>
+        /// <returns>Асинхронная задача</returns>
         public async Task Execute(IJobExecutionContext context)
         {
             _logger.LogInformation("Начало выполнения ReportJob в {Time}", DateTime.Now);
@@ -44,7 +52,7 @@ namespace IntegrationReportSbAstBot.Class
 
                 if (subscribers.Count == 0)
                 {
-                    Console.WriteLine("Нет подписчиков для отправки сообщения");
+                    _logger.LogInformation("Нет подписчиков для отправки сообщения");
                     return;
                 }
 
@@ -83,6 +91,12 @@ namespace IntegrationReportSbAstBot.Class
             }
         }
 
+        /// <summary>
+        /// Отправляет текстовое сообщение пользователю Telegram
+        /// </summary>
+        /// <param name="chatId">Идентификатор чата пользователя</param>
+        /// <param name="messageText">Текст сообщения для отправки</param>
+        /// <returns>Асинхронная задача</returns>
         private async Task SendMessageAsync(long chatId, string messageText)
         {
             try
@@ -96,21 +110,21 @@ namespace IntegrationReportSbAstBot.Class
             {
                 // Пользователь заблокировал бота
                 await _subscriberService.UnsubscribeUserAsync(chatId);
-                Console.WriteLine($"Пользователь {chatId} заблокировал бота и был удален из списка");
+                _logger.LogInformation($"Пользователь {chatId} заблокировал бота и был удален из списка");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка отправки сообщения {chatId}: {ex.Message}");
+                _logger.LogError(ex, $"Ошибка отправки сообщения {chatId}");
             }
         }
 
         /// <summary>
-        /// 
+        /// Отправляет полный отчет пользователю: сначала текстовое сообщение, затем HTML документ
         /// </summary>
-        /// <param name="chatId"></param>
-        /// <param name="messageText"></param>
-        /// <param name="bodyHtml"></param>
-        /// <returns></returns>
+        /// <param name="chatId">Идентификатор чата пользователя</param>
+        /// <param name="messageText">Текстовое сообщение с краткой информацией</param>
+        /// <param name="bodyHtml">Путь к HTML файлу отчета</param>
+        /// <returns>Асинхронная задача</returns>
         private async Task SendReportToUserAsync(long chatId, string messageText, string bodyHtml)
         {
             try
@@ -127,20 +141,20 @@ namespace IntegrationReportSbAstBot.Class
             {
                 // Пользователь заблокировал бота
                 await _subscriberService.UnsubscribeUserAsync(chatId);
-                Console.WriteLine($"Пользователь {chatId} заблокировал бота и был удален из списка");
+                _logger.LogInformation($"Пользователь {chatId} заблокировал бота и был удален из списка");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка отправки отчета пользователю {chatId}: {ex.Message}");
+                _logger.LogError(ex, $"Ошибка отправки отчета пользователю {chatId}");
             }
         }
 
         /// <summary>
-        /// 
+        /// Отправляет HTML документ отчета пользователю Telegram
         /// </summary>
-        /// <param name="chatId"></param>
-        /// <param name="bodyHtml"></param>
-        /// <returns></returns>
+        /// <param name="chatId">Идентификатор чата пользователя</param>
+        /// <param name="bodyHtml">Путь к HTML файлу или содержимое файла</param>
+        /// <returns>Асинхронная задача</returns>
         private async Task SendDocumentAsync(long chatId, string bodyHtml)
         {
             try
@@ -171,11 +185,11 @@ namespace IntegrationReportSbAstBot.Class
             {
                 // Пользователь заблокировал бота
                 await _subscriberService.UnsubscribeUserAsync(chatId);
-                Console.WriteLine($"Пользователь {chatId} заблокировал бота и был удален из списка");
+                _logger.LogInformation($"Пользователь {chatId} заблокировал бота и был удален из списка");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка отправки сообщения {chatId}: {ex.Message}");
+                _logger.LogError(ex, $"Ошибка отправки документа {chatId}");
             }
         }
     }

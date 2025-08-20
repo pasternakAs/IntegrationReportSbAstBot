@@ -1,17 +1,41 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace IntegrationReportSbAstBot.Class
+﻿namespace IntegrationReportSbAstBot.Class
 {
+    /// <summary>
+    /// Представляет информацию о пакете документов для включения в отчет
+    /// Содержит данные о типе документа, выявленных нарушениях и метаинформации о пакете
+    /// </summary>
     public class PackageInfo
     {
+        /// <summary>
+        /// Тип документа в пакете
+        /// Определяет категорию или классификацию документов в пакете
+        /// </summary>
         public string DocumentType { get; set; }
-        public string Violations { get; set; }
+
+        /// <summary>
+        /// Описание выявленных нарушений в пакете документов
+        /// Содержит информацию о проблемах, ошибках или несоответствиях в документах пакета
+        /// </summary>
+        public string Violations { get; set; } = "";
+
+        /// <summary>
+        /// Направление движения документов
+        /// Указывает направление обмена документами (входящие/исходящие)
+        /// </summary>
+        /// <example>"Входящий", "Исходящий"</example>
         public string InOut { get; set; }
+
+        /// <summary>
+        /// Идентификатор объекта
+        /// Уникальный числовой идентификатор связанного бизнес-объекта или сущности
+        /// </summary>
         public int ObjectId { get; set; }
+
+        /// <summary>
+        /// Дата последней отправки пакета документов
+        /// Временная метка, указывающая когда пакет документов был отправлен последний раз
+        /// </summary>
+        /// <example>2024-01-15 14:30:00</example>
         public DateTime LastSendDate { get; set; }
     }
 }
