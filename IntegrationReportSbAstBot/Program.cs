@@ -38,7 +38,8 @@ builder.Services.AddSingleton<IReportHtmlService, ReportHtmlService>();
 // Quartz
 builder.Services.AddQuartz(q =>
 {
-    q.UseMicrosoftDependencyInjectionJobFactory();
+    // Явно указываем JobFactory если нужно
+    //q.UseJobFactory<MicrosoftDependencyInjectionJobFactory>();
 
     var jobKey = new JobKey("ReportJob");
     q.AddJob<ReportJob>(opts => opts.WithIdentity(jobKey));
