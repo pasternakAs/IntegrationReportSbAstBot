@@ -32,7 +32,7 @@ builder.Services.AddSingleton<ITelegramBotClient>(provider =>
 builder.Services.AddSingleton<ISubscriberService, SubscriberService>();
 builder.Services.AddSingleton<TelegramBotService>();
 builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
-builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddSingleton<IReportService, ReportService>();
 builder.Services.AddSingleton<IReportHtmlService, ReportHtmlService>();
 
 // Quartz
@@ -43,10 +43,11 @@ builder.Services.AddQuartz(q =>
     var jobKey = new JobKey("ReportJob");
     q.AddJob<ReportJob>(opts => opts.WithIdentity(jobKey));
 
-
     var options = builder.Configuration.GetSection("Quartz:Jobs:ReportJob").Get<QuartzJobOptions>();
     if (options == null || string.IsNullOrWhiteSpace(options.CronSchedule))
         throw new InvalidOperationException("Quartz cron schedule not configured");
+
+    Console.WriteLine($"[Quartz] Cron: {options?.CronSchedule}");
 
     q.AddTrigger(opts => opts
         .ForJob(jobKey)
