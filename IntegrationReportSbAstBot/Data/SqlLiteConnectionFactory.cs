@@ -1,6 +1,7 @@
 ﻿using System.Data.Common;
 using IntegrationReportSbAstBot.Class.Options;
 using IntegrationReportSbAstBot.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 
 namespace IntegrationReportSbAstBot.Data
@@ -16,9 +17,7 @@ namespace IntegrationReportSbAstBot.Data
 
         public DbConnection CreateConnection()
         {
-            var connection = new SqliteConnection(_dbOptions.ConnectionString);
-            connection.Open();
-            return connection;
+            return new SqliteConnection(_dbOptions.ConnectionString);
         }
     }
 }

@@ -32,9 +32,7 @@ namespace IntegrationReportSbAstBot.Data
         /// </remarks>
         public DbConnection CreateConnection()
         {
-            var connection = new SqlConnection(_dbOptions.ConnectionString);
-            connection.Open();
-            return connection;
+            return new SqlConnection(_dbOptions.ConnectionString);
         }
     }
 }
