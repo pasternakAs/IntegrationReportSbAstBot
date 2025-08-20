@@ -42,7 +42,7 @@ namespace IntegrationReportSbAstBot.Services
                 var sql = @"
                 SELECT COUNT(*) as TotalCount
                 FROM dbo.docOOSdoc WITH (NOLOCK)
-                WHERE CreatedAt >= @DateFrom 
+                WHERE CreateDate >= @DateFrom 
                 AND (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
                    OR docType LIKE 'epNotificationE%')
                 AND state IN (-1, -2)";
@@ -61,7 +61,7 @@ namespace IntegrationReportSbAstBot.Services
             FROM dbo.docOOSdoc WITH (NOLOCK)
             WHERE (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
                    OR docType LIKE 'epNotificationE%')
-              AND lastSendDate >= @DateFrom
+              AND CreateDate >= @DateFrom
               AND state IN (-1, -2)";
 
                 var packages = (await connection.QueryAsync<PackageInfo>(packagesSql, new { DateFrom = dateFrom })).ToList();
