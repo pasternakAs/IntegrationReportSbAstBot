@@ -72,39 +72,6 @@ namespace IntegrationReportSbAstBot.Class
                 }
 
                 _logger.LogInformation($"Отчет отправлен {subscribers.Count} подписчикам");
-
-                //const string connStr = "Server=172.30.201.12;Database=CDB;Trusted_Connection=true;TrustServerCertificate=true;";
-
-                //var rows = new List<DocRow>();
-                //    int total = rows.Count;
-                //    var summaryRows = rows
-                //        .GroupBy(x => x.DocType)
-                //        .Select(g => $"<tr><td>{g.Key}</td><td>{g.Count()}</td></tr>");
-
-
-                //    string summaryHtml = $@"
-                //<h3>Сводка по важным пакетам за последние сутки</h3>
-                //<table border='1' cellpadding='5' cellspacing='0'>
-                //    <tr><th>Тип пакета</th><th>Количество</th></tr>
-                //    {string.Join("", summaryRows)}
-                //</table><br/>";
-
-                //    var detailRows = rows
-                //        .OrderByDescending(x => x.LastSendDate)
-                //        .Select(x =>
-                //            $"<tr><td>{x.DocType}</td><td>{x.Violations}</td><td>{x.Direction}</td><td>{x.ObjectId}</td><td>{x.LastSendDate:yyyy-MM-dd HH:mm:ss}</td></tr>");
-
-                //    string detailsHtml = $@"
-                //<h3>Детализация по важным пакетам</h3>
-                //<table border='1' cellpadding='5' cellspacing='0'>
-                //    <tr><th>Тип пакета</th><th>Ошибка</th><th>Направление</th><th>Процедура</th><th>Последняя дата отправки</th></tr>
-                //    {string.Join("", detailRows)}
-                //</table>";
-
-                //var bodyHtml = "";//summaryHtml + detailsHtml;
-
-                //var tasks = subscribers.Select(chatId => SendReportToUserAsync(chatId, messageText, bodyHtml));
-                //await Task.WhenAll(tasks);
             }
             catch (Exception ex)
             {
