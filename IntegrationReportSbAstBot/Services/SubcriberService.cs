@@ -1,22 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using IntegrationReportSbAstBot.Interfaces;
+﻿using IntegrationReportSbAstBot.Interfaces;
 
 namespace IntegrationReportSbAstBot.Services
 {
+    /// <summary>
+    /// Сервис управления подписчиками для Telegram бота
+    /// Обеспечивает добавление, удаление и получение списка подписчиков
+    /// Использует потокобезопасное хранение данных в памяти
+    /// </summary>
     public class SubscriberService : ISubscriberService
     {
         private static readonly List<long> _subscribers = [];
         private static readonly object _lock = new();
 
         /// <summary>
-        /// 
+        /// Добавляет пользователя в список подписчиков
+        /// Если пользователь уже подписан, операция игнорируется
         /// </summary>
-        /// <param name="chatId"></param>
-        /// <returns></returns>
+        /// <param name="chatId">Идентификатор чата пользователя в Telegram</param>
+        /// <returns>Асинхронная задача завершения операции</returns>
         public Task SubscribeUserAsync(long chatId)
         {
             lock (_lock)
@@ -31,10 +32,11 @@ namespace IntegrationReportSbAstBot.Services
         }
 
         /// <summary>
-        /// 
+        /// Удаляет пользователя из списка подписчиков
+        /// Если пользователь не найден в списке, операция игнорируется
         /// </summary>
-        /// <param name="chatId"></param>
-        /// <returns></returns>
+        /// <param name="chatId">Идентификатор чата пользователя в Telegram</param>
+        /// <returns>Асинхронная задача завершения операции</returns>
         public Task UnsubscribeUserAsync(long chatId)
         {
             lock (_lock)
@@ -46,9 +48,10 @@ namespace IntegrationReportSbAstBot.Services
         }
 
         /// <summary>
-        /// 
+        /// Получает копию списка всех подписчиков
+        /// Возвращает новый список для предотвращения модификации внутреннего состояния
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Асинхронная задача, содержащая список идентификаторов чатов подписчиков</returns>
         public Task<List<long>> GetSubscribersAsync()
         {
             lock (_lock)
@@ -58,12 +61,13 @@ namespace IntegrationReportSbAstBot.Services
         }
 
         /// <summary>
-        /// Сохранить новго пользователя
+        /// Метод-заглушка для будущей реализации сохранения подписчиков в постоянное хранилище
+        /// В текущей реализации выбрасывает NotImplementedException
         /// </summary>
-        /// <param name="chatId">id chat user</param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        private async Task SaveUserForBroadcast(long chatId)
+        /// <param name="chatId">Идентификатор чата пользователя в Telegram</param>
+        /// <returns>Асинхронная задача</returns>
+        /// <exception cref="NotImplementedException">Метод еще не реализован</exception>
+        public async Task SaveUserForBroadcast(long chatId)
         {
             throw new NotImplementedException();
         }
