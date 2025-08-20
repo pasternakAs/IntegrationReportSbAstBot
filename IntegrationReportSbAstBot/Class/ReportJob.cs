@@ -1,5 +1,5 @@
-﻿using IntegrationReportSbAstBot.Interfaces;
-using Microsoft.Data.SqlClient;
+﻿using System.Text;
+using IntegrationReportSbAstBot.Interfaces;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Telegram.Bot;
@@ -13,16 +13,20 @@ namespace IntegrationReportSbAstBot.Class
         private readonly ITelegramBotClient _bot;
         private readonly ILogger<ReportJob> _logger;
         private readonly ISubscriberService _subscriberService;
+        private readonly IReportService _reportService;
+        private readonly IReportHtmlService _reportHtmlService;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="bot"></param>
-        public ReportJob(ITelegramBotClient bot, ILogger<ReportJob> logger, ISubscriberService subscriberService)
+        public ReportJob(ITelegramBotClient bot, ILogger<ReportJob> logger, ISubscriberService subscriberService, IReportService reportService, IReportHtmlService reportHtmlService)
         {
             _bot = bot;
             _logger = logger;
             _subscriberService = subscriberService;
+            _reportService = reportService;
+            _reportHtmlService = reportHtmlService;
         }
 
         /// <summary>
@@ -44,70 +48,63 @@ namespace IntegrationReportSbAstBot.Class
                     return;
                 }
 
-                await _bot.SendMessage(
-                  chatId: 6426583094, // @xamfess
-                  text: $"TestMessage",
-                  parseMode: ParseMode.Html);
+                // Генерируем данные отчета
+                var generateReportData = await _reportService.GenerateReportAsync();
+                // Формируем сообщение
+                var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.TotalCount} шт.) за последние сутки";
 
-                const string connStr = "Server=172.30.201.12;Database=CDB;Trusted_Connection=true;TrustServerCertificate=true;";
-                var rows = new List<DocRow>();
+                // Формируем HTML отчет
+                var htmlReport = _reportHtmlService.GenerateHtmlReport(generateReportData);
+                var fileName = $"report_{DateTime.Now:yyyyMMdd_HHmmss}.html";
+                var filePath = Path.Combine(Path.GetTempPath(), fileName);
 
-                using (var conn = new SqlConnection(connStr))
-                using (var cmd = new SqlCommand(@"
-            SELECT docType, violations, inout, ObjectId, lastSendDate
-            FROM dbo.docOOSdoc WITH (NOLOCK)
-            WHERE (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
-                   OR docType LIKE 'epNotificationE%')
-              AND lastSendDate >= DATEADD(DAY, -1, GETDATE())
-              AND state IN (-1, -2)
-        ", conn))
+                // Сохраняем HTML в временный файл
+                await File.WriteAllTextAsync(filePath, htmlReport, Encoding.UTF8);
+
+                // Отправляем отчеты всем подписчикам
+                var tasks = subscribers.Select(chatId => SendReportToUserAsync(chatId, messageText, filePath));
+                await Task.WhenAll(tasks);
+
+                // Удаляем временный файл
+                if (File.Exists(filePath))
                 {
-                    await conn.OpenAsync();
-                    using var r = await cmd.ExecuteReaderAsync();
-                    while (await r.ReadAsync())
-                    {
-                        rows.Add(new DocRow
-                        {
-                            DocType = r.GetString(0),
-                            Violations = r.IsDBNull(1) ? "" : r.GetString(1),
-                            Direction = r.GetBoolean(2) ? "EIS --> ETP" : "ETP --> EIS",
-                            ObjectId = r.GetValue(3).ToString() ?? "",
-                            LastSendDate = r.GetDateTime(4)
-                        });
-                    }
+                    File.Delete(filePath);
                 }
 
-                if (rows.Count == 0) return;
+                _logger.LogInformation($"Отчет отправлен {subscribers.Count} подписчикам");
 
-                int total = rows.Count;
+                //const string connStr = "Server=172.30.201.12;Database=CDB;Trusted_Connection=true;TrustServerCertificate=true;";
 
-                var summaryRows = rows
-                    .GroupBy(x => x.DocType)
-                    .Select(g => $"<tr><td>{g.Key}</td><td>{g.Count()}</td></tr>");
-                string summaryHtml = $@"
-            <h3>Сводка по важным пакетам за последние сутки</h3>
-            <table border='1' cellpadding='5' cellspacing='0'>
-                <tr><th>Тип пакета</th><th>Количество</th></tr>
-                {string.Join("", summaryRows)}
-            </table><br/>";
+                //var rows = new List<DocRow>();
+                //    int total = rows.Count;
+                //    var summaryRows = rows
+                //        .GroupBy(x => x.DocType)
+                //        .Select(g => $"<tr><td>{g.Key}</td><td>{g.Count()}</td></tr>");
 
-                var detailRows = rows
-                    .OrderByDescending(x => x.LastSendDate)
-                    .Select(x =>
-                        $"<tr><td>{x.DocType}</td><td>{x.Violations}</td><td>{x.Direction}</td><td>{x.ObjectId}</td><td>{x.LastSendDate:yyyy-MM-dd HH:mm:ss}</td></tr>");
-                string detailsHtml = $@"
-            <h3>Детализация по важным пакетам</h3>
-            <table border='1' cellpadding='5' cellspacing='0'>
-                <tr><th>Тип пакета</th><th>Ошибка</th><th>Направление</th><th>Процедура</th><th>Последняя дата отправки</th></tr>
-                {string.Join("", detailRows)}
-            </table>";
 
-                string bodyHtml = summaryHtml + detailsHtml;
+                //    string summaryHtml = $@"
+                //<h3>Сводка по важным пакетам за последние сутки</h3>
+                //<table border='1' cellpadding='5' cellspacing='0'>
+                //    <tr><th>Тип пакета</th><th>Количество</th></tr>
+                //    {string.Join("", summaryRows)}
+                //</table><br/>";
 
-                // Отправляем сообщения всем подписчикам
-                var messageText = $"Отчёт по важным пакетам ({total} шт.) за последние сутки";
-                var tasks = subscribers.Select(chatId => SendReportToUserAsync(chatId, messageText, bodyHtml));
-                await Task.WhenAll(tasks);
+                //    var detailRows = rows
+                //        .OrderByDescending(x => x.LastSendDate)
+                //        .Select(x =>
+                //            $"<tr><td>{x.DocType}</td><td>{x.Violations}</td><td>{x.Direction}</td><td>{x.ObjectId}</td><td>{x.LastSendDate:yyyy-MM-dd HH:mm:ss}</td></tr>");
+
+                //    string detailsHtml = $@"
+                //<h3>Детализация по важным пакетам</h3>
+                //<table border='1' cellpadding='5' cellspacing='0'>
+                //    <tr><th>Тип пакета</th><th>Ошибка</th><th>Направление</th><th>Процедура</th><th>Последняя дата отправки</th></tr>
+                //    {string.Join("", detailRows)}
+                //</table>";
+
+                //var bodyHtml = "";//summaryHtml + detailsHtml;
+
+                //var tasks = subscribers.Select(chatId => SendReportToUserAsync(chatId, messageText, bodyHtml));
+                //await Task.WhenAll(tasks);
             }
             catch (Exception ex)
             {

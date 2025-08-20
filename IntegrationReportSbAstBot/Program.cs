@@ -1,11 +1,11 @@
 ﻿using IntegrationReportSbAstBot.Class;
+using IntegrationReportSbAstBot.Data;
 using IntegrationReportSbAstBot.Interfaces;
 using IntegrationReportSbAstBot.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Quartz;
 using Quartz.Simpl;
-using Quartz.Spi;
 using Telegram.Bot;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -16,6 +16,9 @@ builder.Services.AddSingleton<ITelegramBotClient>(provider =>
 // Сервис для управления подписчиками
 builder.Services.AddSingleton<ISubscriberService, SubscriberService>();
 builder.Services.AddSingleton<TelegramBotService>();// Регистрируем сервис
+builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddSingleton<IReportHtmlService, ReportHtmlService>();
 
 // Quartz scheduler
 builder.Services.AddQuartz(q =>
@@ -32,7 +35,6 @@ builder.Services.AddQuartz(q =>
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
-//builder.Services.AddSingleton<IJobFactory, MicrosoftDependencyInjectionJobFactory>();
 
 var host = builder.Build();
 
