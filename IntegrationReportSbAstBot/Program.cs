@@ -51,6 +51,7 @@ builder.Services.AddSingleton<TelegramBotService>();
 builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<IReportService, ReportService>();
 builder.Services.AddSingleton<IReportHtmlService, ReportHtmlService>();
+builder.Services.AddSingleton<IProcedureInfoService, GenerateReportForProcedure>();
 
 // Quartz
 builder.Services.AddQuartz(q =>

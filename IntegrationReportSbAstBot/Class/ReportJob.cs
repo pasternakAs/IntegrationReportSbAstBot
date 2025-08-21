@@ -56,7 +56,6 @@ namespace IntegrationReportSbAstBot.Class
                     return;
                 }
 
-
                 // Генерируем данные отчета
                 var generateReportData = await _reportService.GenerateReportAsync();
                 // Формируем сообщение
