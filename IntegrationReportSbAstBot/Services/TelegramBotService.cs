@@ -1,6 +1,7 @@
 ﻿using IntegrationReportSbAstBot.Class;
 using IntegrationReportSbAstBot.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
@@ -12,25 +13,18 @@ namespace IntegrationReportSbAstBot.Services
     /// Обрабатывает входящие сообщения, команды пользователей и управляет подписками
     /// Обеспечивает запуск и работу бота в режиме polling
     /// </summary>
-    public class TelegramBotService
+    /// <remarks>
+    /// Инициализирует новый экземпляр класса TelegramBotService
+    /// </remarks>
+    /// <param name="botClient">Клиент Telegram бота для отправки и получения сообщений</param>
+    /// <param name="subscriberService">Сервис управления подписчиками для управления списком подписчиков</param>
+    public class TelegramBotService(ITelegramBotClient botClient, ISubscriberService subscriberService, ILogger<TelegramBotService> logger, IProcedureInfoService procedureInfoService, IOptions<BotSettings> botSettings)
     {
-        private readonly ITelegramBotClient _botClient;
-        private readonly ISubscriberService _subscriberService;
-        private readonly IProcedureInfoService _procedureInfoService;
-        private readonly ILogger _logger;
-
-        /// <summary>
-        /// Инициализирует новый экземпляр класса TelegramBotService
-        /// </summary>
-        /// <param name="botClient">Клиент Telegram бота для отправки и получения сообщений</param>
-        /// <param name="subscriberService">Сервис управления подписчиками для управления списком подписчиков</param>
-        public TelegramBotService(ITelegramBotClient botClient, ISubscriberService subscriberService, ILogger logger, IProcedureInfoService procedureInfoService)
-        {
-            _botClient = botClient;
-            _subscriberService = subscriberService;
-            _logger = logger;
-            _procedureInfoService = procedureInfoService;
-        }
+        private readonly ITelegramBotClient _botClient = botClient;
+        private readonly ISubscriberService _subscriberService = subscriberService;
+        private readonly IProcedureInfoService _procedureInfoService = procedureInfoService;
+        private readonly ILogger<TelegramBotService> _logger = logger;
+        private readonly BotSettings _botSettings = botSettings.Value;
 
         /// <summary>
         /// Запускает бота в режиме polling для приема входящих сообщений
@@ -72,8 +66,6 @@ namespace IntegrationReportSbAstBot.Services
             if (message.Text is not { } messageText)
                 return;
 
-            var chatId = message.Chat.Id;
-
             // Обработка команд
             await HandleCommandAsync(message, messageText, cancellationToken);
         }
@@ -89,7 +81,21 @@ namespace IntegrationReportSbAstBot.Services
         private async Task HandleCommandAsync(Telegram.Bot.Types.Message message, string messageText, CancellationToken cancellationToken)
         {
             var chatId = message.Chat.Id;
+            var userId = message.From?.Id;
             var chatType = message.Chat.Type; // Group, Supergroup, Private и т.д.
+
+            // Обработка команд с параметрами
+            if (!messageText.StartsWith("/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // Отсекаем сообщения старше 5 минут
+            var messageAge = DateTime.UtcNow - message.Date;
+            if (messageAge.TotalMinutes > 5)
+            {
+                return; // Просто игнорируем
+            }
 
             // Обработка команд с параметрами
             if (messageText.StartsWith("/procedure", StringComparison.OrdinalIgnoreCase))
@@ -98,9 +104,43 @@ namespace IntegrationReportSbAstBot.Services
                 return;
             }
 
+            // Если бот выключен, отправляем сообщение (кроме команд управления)
+            if (!_botSettings.IsEnabled && !messageText.Equals("/enable", StringComparison.OrdinalIgnoreCase))
+            {
+                await _botClient.SendMessage(
+                    chatId: chatId,
+                    text: "❌ Бот временно выключен администратором. Попробуйте позже.",
+                    cancellationToken: cancellationToken);
+                return;
+            }
+
+            // Проверяем команды управления для админов
+            if (_botSettings.AdminUserIds.Contains(userId ?? 0))
+            {
+                if (messageText.Equals("/enable", StringComparison.OrdinalIgnoreCase))
+                {
+                    _botSettings.IsEnabled = true;
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: "✅ Бот включен",
+                        cancellationToken: cancellationToken);
+                    return;
+                }
+
+                if (messageText.Equals("/disable", StringComparison.OrdinalIgnoreCase))
+                {
+                    _botSettings.IsEnabled = false;
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: "❌ Бот выключен",
+                        cancellationToken: cancellationToken);
+                    return;
+                }
+            }
+
             switch (messageText.ToLower())
             {
-                case "/start" when chatType == Telegram.Bot.Types.Enums.ChatType.Private:
+                case "/start":
                     await _botClient.SendMessage(
                         chatId: chatId,
                         text: "Привет! Я бот для рассылок. Используйте /subscribe для подписки на уведомления. И команда /help для вопросов.",
@@ -150,9 +190,13 @@ namespace IntegrationReportSbAstBot.Services
                     break;
 
                 case "/help":
+                    var textHelp = chatType == Telegram.Bot.Types.Enums.ChatType.Private
+                        ? "Доступные команды:\n/start - начать работу\n/subscribe - подписаться на рассылку\n/unsubscribe - отписаться от рассылки\n/procedure номер_процедуры - инфа по процедуре\n/help - помощь"
+                        : "Доступные команды:\n/subscribe - подписаться на рассылку\n/unsubscribe - отписаться от рассылки\n/procedure номер_процедуры - инфа по процедуре\n/help - помощь";
+
                     await _botClient.SendMessage(
                         chatId: chatId,
-                        text: "Доступные команды:\n/start - начать работу\n/subscribe - подписаться на рассылку\n/unsubscribe - отписаться от рассылки\n/help - помощь",
+                        text: textHelp,
                         cancellationToken: cancellationToken);
                     break;
 

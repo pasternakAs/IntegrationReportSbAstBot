@@ -6,16 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace IntegrationReportSbAstBot.Services
 {
-    public class GenerateReportForProcedure : IProcedureInfoService
+    public class GenerateReportForProcedure(ILogger<GenerateReportForProcedure> logger, IDbConnectionFactory dbConnectionFactory) : IProcedureInfoService
     {
-        private readonly ILogger _logger;
-        private readonly IDbConnectionFactory _connectionFactory;
-
-        public GenerateReportForProcedure(ILogger logger, IDbConnectionFactory dbConnectionFactory)
-        {
-            _logger = logger;
-            _connectionFactory = dbConnectionFactory;
-        }
+        private readonly ILogger<GenerateReportForProcedure> _logger = logger;
+        private readonly IDbConnectionFactory _connectionFactory = dbConnectionFactory;
 
         public async Task<List<ProcedureInfo>> GetProcedureInfoAsync(string objectId, int? inOut = null)
         {
@@ -92,7 +86,7 @@ namespace IntegrationReportSbAstBot.Services
             return sb.ToString();
         }
 
-        private string GetStateDescription(int state)
+        private static string GetStateDescription(int state)
         {
             return state switch
             {

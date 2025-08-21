@@ -32,6 +32,7 @@ var config = builder.Configuration
 builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Telegram"));
 builder.Services.Configure<QuartzJobOptions>(builder.Configuration.GetSection("Quartz:Jobs:ReportJob"));
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Database"));
+builder.Services.Configure<BotSettings>(builder.Configuration.GetSection("BotSettings"));
 
 // Telegram Bot
 builder.Services.AddSingleton<ITelegramBotClient>(provider =>
