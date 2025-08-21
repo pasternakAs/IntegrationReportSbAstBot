@@ -87,7 +87,7 @@ namespace IntegrationReportSbAstBot.Services
 
             switch (messageText.ToLower())
             {
-                case "/start":
+                case "/start" when chatType == Telegram.Bot.Types.Enums.ChatType.Private:
                     await _botClient.SendMessage(
                         chatId: chatId,
                         text: "Привет! Я бот для рассылок. Используйте /subscribe для подписки на уведомления. И команда /help для вопросов.",

@@ -11,6 +11,23 @@ using Telegram.Bot;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+// Явно устанавливаем окружение для разработки (только для отладки!)
+#if DEBUG
+builder.Configuration.AddEnvironmentVariables();
+Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+#endif
+
+// Загружаем конфигурацию с учетом окружения
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+Console.WriteLine($"Environment: {environment}");
+
+// Опции с поддержкой окружения
+var config = builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 // Опции
 builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Telegram"));
 builder.Services.Configure<QuartzJobOptions>(builder.Configuration.GetSection("Quartz:Jobs:ReportJob"));
