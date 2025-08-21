@@ -41,17 +41,13 @@ builder.Services.AddQuartz(q =>
     // Явно указываем JobFactory если нужно
     //q.UseJobFactory<MicrosoftDependencyInjectionJobFactory>();
 
-    var jobKey = new JobKey("ReportJob");
-    q.AddJob<ReportJob>(opts => opts.WithIdentity(jobKey));
-
     var options = builder.Configuration.GetSection("Quartz:Jobs:ReportJob").Get<QuartzJobOptions>();
     if (options == null || string.IsNullOrWhiteSpace(options.CronSchedule))
         throw new InvalidOperationException("Quartz cron schedule not configured");
 
     Console.WriteLine($"[Quartz] Cron: {options?.CronSchedule}");
 
-    q.AddTrigger(opts => opts
-        .ForJob(jobKey)
+    q.ScheduleJob<ReportJob>(trigger => trigger
         .WithIdentity("ReportJob-trigger")
         .WithCronSchedule(options.CronSchedule));
 });

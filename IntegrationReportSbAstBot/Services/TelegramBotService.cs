@@ -83,6 +83,7 @@ namespace IntegrationReportSbAstBot.Services
         private async Task HandleCommandAsync(Telegram.Bot.Types.Message message, string messageText, CancellationToken cancellationToken)
         {
             var chatId = message.Chat.Id;
+            var chatType = message.Chat.Type; // Group, Supergroup, Private и т.д.
 
             switch (messageText.ToLower())
             {
@@ -93,11 +94,29 @@ namespace IntegrationReportSbAstBot.Services
                         cancellationToken: cancellationToken);
                     break;
 
-                case "/subscribe":
+                case "/subscribe" when chatType == Telegram.Bot.Types.Enums.ChatType.Private:
                     await _subscriberService.SubscribeUserAsync(chatId);
                     await _botClient.SendMessage(
                         chatId: chatId,
                         text: "✅ Вы успешно подписались на рассылку!",
+                        cancellationToken: cancellationToken);
+                    break;
+
+                case "/groupid":
+                    // Команда для получения ID группы (полезно для администратора)
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: $"🆔 Chat ID этой группы: <code>{chatId}</code>",
+                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
+                        cancellationToken: cancellationToken);
+                    break;
+
+                case "/subscribe" when chatType != Telegram.Bot.Types.Enums.ChatType.Private:
+                    // Для групп - добавляем группу в подписчики
+                    await _subscriberService.SubscribeUserAsync(chatId);
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: "✅ Группа подписана на рассылку отчетов!",
                         cancellationToken: cancellationToken);
                     break;
 

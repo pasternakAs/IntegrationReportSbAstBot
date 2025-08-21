@@ -33,6 +33,8 @@ namespace IntegrationReportSbAstBot.Services
         /// <exception cref="Exception">Выбрасывается при ошибках выполнения запросов к базе данных</exception>
         public async Task<ReportDataClass> GenerateReportAsync()
         {
+            _logger.LogInformation("Генерируем данные отчета по важным пакетам документов за последние сутки");
+
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
