@@ -41,7 +41,7 @@ namespace IntegrationReportSbAstBot.Class
 <body>
     <h1>Отчет по важным пакетам</h1>
     <p>Сформирован: {reportData.GeneratedAt:dd.MM.yyyy HH:mm}</p>
-    <p>Всего пакетов: {reportData.TotalCount}</p>
+    <p>Всего пакетов: {reportData.SummaryOfPackages.Count}</p>
 ");
 
             // Добавляем блоки отчета
@@ -109,10 +109,6 @@ namespace IntegrationReportSbAstBot.Class
         {
             var sb = new StringBuilder();
 
-            var summary = reportData.Packages
-                .GroupBy(p => p.DocumentType)
-                .OrderByDescending(g => g.Count());
-
             sb.Append(@"
     <h2>Сводка по всем пакетам</h2>
     <table>
@@ -124,12 +120,12 @@ namespace IntegrationReportSbAstBot.Class
         </thead>
         <tbody>");
 
-            foreach (var group in summary)
+            foreach (var group in reportData.SummaryOfPackages)
             {
                 sb.Append($@"
             <tr>
-                <td>{WebUtility.HtmlEncode(group.Key)}</td>
-                <td>{group.Count()}</td>
+                <td>{WebUtility.HtmlEncode(group.TypeDocument?.Trim())}</td>
+                <td>{group.Amount}</td>
             </tr>");
             }
 

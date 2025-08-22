@@ -36,6 +36,6 @@
         /// Временная метка, указывающая когда пакет документов был отправлен последний раз
         /// </summary>
         /// <example>2024-01-15 14:30:00</example>
-        public DateTime LastSendDate { get; set; }
+        public DateTime? LastSendDate { get; set; }
     }
 }

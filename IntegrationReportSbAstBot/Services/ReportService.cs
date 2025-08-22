@@ -42,22 +42,27 @@ namespace IntegrationReportSbAstBot.Services
 
                 // Параметризованный запрос для безопасности
                 var sql = @"
-                SELECT COUNT(*) as TotalCount
+                SELECT COUNT(*) as Amount,
+                doctype as TypeDocument
                 FROM dbo.docOOSdoc WITH (NOLOCK)
                 WHERE CreateDate >= @DateFrom 
                 AND (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
                    OR docType LIKE 'epNotificationE%')
-                AND state IN (-1, -2)";
+                AND state IN (-1, -2)
+                GROUP BY doctype";
 
                 var dateFrom = DateTime.UtcNow.AddDays(-1);
 
-                var totalCount = await connection.QuerySingleAsync<int>(sql, new { DateFrom = dateFrom });
+                var summaryOfPackages = (await connection.QueryAsync<SummaryOfPackages>(sql, new { DateFrom = dateFrom })).ToList();
 
                 // Получаем сами пакеты
                 var packagesSql = @"
             SELECT docType
                    , violations
-                   , inout
+                   , inout = CASE 
+		            WHEN InOut = 0 THEN 'AST --> EIS' 
+		            WHEN InOut = 1 THEN 'AST <-- EIS' 
+	                END
                    , ObjectId
                    , lastSendDate
             FROM dbo.docOOSdoc WITH (NOLOCK)
@@ -70,7 +75,7 @@ namespace IntegrationReportSbAstBot.Services
 
                 return new ReportDataClass
                 {
-                    TotalCount = totalCount,
+                    SummaryOfPackages = summaryOfPackages ?? [],
                     Packages = packages,
                     GeneratedAt = DateTime.UtcNow
                 };

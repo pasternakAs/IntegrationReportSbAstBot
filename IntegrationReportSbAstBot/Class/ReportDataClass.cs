@@ -18,7 +18,7 @@
         /// Используется для формирования сводной статистики
         /// </summary>
         /// <example>15, 23, 7</example>
-        public int TotalCount { get; set; }
+        public List<SummaryOfPackages> SummaryOfPackages { get; set; }
 
         /// <summary>
         /// Дата и время генерации отчета

@@ -59,7 +59,7 @@ namespace IntegrationReportSbAstBot.Class
                 // Генерируем данные отчета
                 var generateReportData = await _reportService.GenerateReportAsync();
                 // Формируем сообщение
-                var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.TotalCount} шт.) за последние сутки";
+                var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.SummaryOfPackages.Count} шт.) за последние сутки";
 
                 // Формируем HTML отчет
                 var htmlReport = _reportHtmlService.GenerateHtmlReport(generateReportData);
