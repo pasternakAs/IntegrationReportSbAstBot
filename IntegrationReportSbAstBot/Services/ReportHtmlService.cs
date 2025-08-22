@@ -45,56 +45,11 @@ namespace IntegrationReportSbAstBot.Class
 ");
 
             // Добавляем блоки отчета
-            sb.Append(GenerateDailySummaryTable(reportData)); // сводка за сутки
+            //sb.Append(GenerateDailySummaryTable(reportData)); // сводка за сутки
             sb.Append(GenerateSummaryTable(reportData));      // сводка по всем
             sb.Append(GenerateDetailTable(reportData));       // детализация
 
             sb.Append("</body></html>");
-
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// Генерирует таблицу "Сводка по важным пакетам за последние сутки"
-        /// Берутся только пакеты, у которых LastSendDate >= (текущая дата - 1 день)
-        /// Группировка по типу пакета (DocumentType)
-        /// </summary>
-        /// <param name="reportData">Данные по пакетам</param>
-        /// <returns>HTML-код таблицы или пустая строка, если данных нет</returns>
-        private string GenerateDailySummaryTable(ReportDataClass reportData)
-        {
-            var sb = new StringBuilder();
-
-            var lastDay = DateTime.Now.AddDays(-1);
-            var dailySummary = reportData.Packages
-                .Where(p => p.LastSendDate >= lastDay)
-                .GroupBy(p => p.DocumentType)
-                .OrderByDescending(g => g.Count());
-
-            if (dailySummary.Any())
-            {
-                sb.Append(@"
-    <h2>Сводка по важным пакетам за последние сутки</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Тип пакета</th>
-                <th>Количество</th>
-            </tr>
-        </thead>
-        <tbody>");
-
-                foreach (var group in dailySummary)
-                {
-                    sb.Append($@"
-            <tr>
-                <td>{WebUtility.HtmlEncode(group.Key)}</td>
-                <td>{group.Count()}</td>
-            </tr>");
-                }
-
-                sb.Append("</tbody></table>");
-            }
 
             return sb.ToString();
         }

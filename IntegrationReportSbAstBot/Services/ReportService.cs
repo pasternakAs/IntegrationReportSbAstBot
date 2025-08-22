@@ -57,7 +57,7 @@ namespace IntegrationReportSbAstBot.Services
 
                 // Получаем сами пакеты
                 var packagesSql = @"
-            SELECT docType
+            SELECT docType as DocumentType
                    , violations
                    , inout = CASE 
 		            WHEN InOut = 0 THEN 'AST --> EIS' 
