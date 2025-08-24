@@ -1,9 +1,7 @@
 ﻿using System.Data.Common;
 using IntegrationReportSbAstBot.Class.Options;
 using IntegrationReportSbAstBot.Interfaces;
-using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Options;
 
 namespace IntegrationReportSbAstBot.Data
 {

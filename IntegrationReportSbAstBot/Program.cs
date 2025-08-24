@@ -33,6 +33,7 @@ builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Te
 builder.Services.Configure<QuartzJobOptions>(builder.Configuration.GetSection("Quartz:Jobs:ReportJob"));
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Database"));
 builder.Services.Configure<BotSettings>(builder.Configuration.GetSection("BotSettings"));
+builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Sqlite")); // Для SQLite
 
 // Telegram Bot
 builder.Services.AddSingleton<ITelegramBotClient>(provider =>
@@ -53,13 +54,12 @@ builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<IReportService, ReportService>();
 builder.Services.AddSingleton<IReportHtmlService, ReportHtmlService>();
 builder.Services.AddSingleton<IProcedureInfoService, GenerateReportForProcedure>();
+builder.Services.AddSingleton<IDbConnectionFactory, SqlLiteConnectionFactory>(); // Для авторизации
+builder.Services.AddSingleton<IAuthorizationService, AuthorizationService>();
 
 // Quartz
 builder.Services.AddQuartz(q =>
 {
-    // Явно указываем JobFactory если нужно
-    //q.UseJobFactory<MicrosoftDependencyInjectionJobFactory>();
-
     var options = builder.Configuration.GetSection("Quartz:Jobs:ReportJob").Get<QuartzJobOptions>();
     if (options == null || string.IsNullOrWhiteSpace(options.CronSchedule))
         throw new InvalidOperationException("Quartz cron schedule not configured");

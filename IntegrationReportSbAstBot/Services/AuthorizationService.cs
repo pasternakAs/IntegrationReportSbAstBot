@@ -3,6 +3,7 @@ using IntegrationReportSbAstBot.Class;
 using IntegrationReportSbAstBot.Interfaces;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace IntegrationReportSbAstBot.Services
 {
@@ -10,21 +11,16 @@ namespace IntegrationReportSbAstBot.Services
     /// Сервис управления авторизацией пользователей
     /// Обрабатывает запросы на доступ, одобрения и проверку прав
     /// </summary>
-    public class AuthorizationService : IAuthorizationService
+    /// <remarks>
+    /// Инициализирует сервис авторизации
+    /// </remarks>
+    /// <param name="connectionFactory">Фабрика подключений к базе данных</param>
+    /// <param name="logger">Логгер для записи событий</param>
+    public class AuthorizationService(IDbConnectionFactory connectionFactory, ILogger<AuthorizationService> logger, IOptions<BotSettings> botSettings) : IAuthorizationService
     {
-        private readonly IDbConnectionFactory _connectionFactory;
-        private readonly ILogger<AuthorizationService> _logger;
-
-        /// <summary>
-        /// Инициализирует сервис авторизации
-        /// </summary>
-        /// <param name="connectionFactory">Фабрика подключений к базе данных</param>
-        /// <param name="logger">Логгер для записи событий</param>
-        public AuthorizationService(IDbConnectionFactory connectionFactory, ILogger<AuthorizationService> logger)
-        {
-            _connectionFactory = connectionFactory;
-            _logger = logger;
-        }
+        private readonly IDbConnectionFactory _connectionFactory = connectionFactory;
+        private readonly ILogger<AuthorizationService> _logger = logger;
+        private readonly BotSettings _botSettings = botSettings.Value; // Добавляем настройки
 
         /// <summary>
         /// Проверяет, авторизован ли пользователь
@@ -33,6 +29,12 @@ namespace IntegrationReportSbAstBot.Services
         /// <returns>True если пользователь авторизован и активен</returns>
         public async Task<bool> IsUserAuthorizedAsync(long userId)
         {
+            // Проверяем, является ли пользователь администратором из конфигурации
+            if (_botSettings.AdminUserIds.Contains(userId))
+            {
+                return true; // Админы всегда авторизованы
+            }
+
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
@@ -95,7 +97,7 @@ namespace IntegrationReportSbAstBot.Services
         /// <param name="adminId">ID администратора</param>
         public async Task ApproveAuthorizationRequestAsync(long requestId, long adminId)
         {
-            using var connection = _connectionFactory.CreateConnection();
+            await using var connection = _connectionFactory.CreateConnection();
             using var transaction = connection.BeginTransaction();
 
             try
@@ -103,11 +105,8 @@ namespace IntegrationReportSbAstBot.Services
                 await connection.OpenAsync();
 
                 // Получаем данные запроса
-                var getRequestSql = "SELECT UserId, UserName, ChatId FROM AuthorizationRequests WHERE Id = @RequestId";
-                var request = await connection.QueryFirstOrDefaultAsync<AuthorizationRequest>(getRequestSql, new { RequestId = requestId });
-
-                if (request == null)
-                    throw new InvalidOperationException("Запрос не найден");
+                const string getRequestSql = "SELECT UserId, UserName, ChatId FROM AuthorizationRequests WHERE Id = @RequestId";
+                var request = await connection.QueryFirstOrDefaultAsync<AuthorizationRequest>(getRequestSql, new { RequestId = requestId }) ?? throw new InvalidOperationException("Запрос не найден");
 
                 // Обновляем статус запроса
                 var updateRequestSql = @"
