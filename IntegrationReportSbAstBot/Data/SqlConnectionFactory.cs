@@ -9,7 +9,7 @@ namespace IntegrationReportSbAstBot.Data
     /// Фабрика для создания подключений к базе данных SQL Server
     /// Реализует паттерн Factory для обеспечения централизованного создания подключений
     /// </summary>
-    public class SqlConnectionFactory : IDbConnectionFactory
+    public class SqlConnectionFactory : ISqlConnectionFactory
     {
         private readonly DatabaseOptions _dbOptions;
 

@@ -9,7 +9,7 @@ namespace IntegrationReportSbAstBot.Data
     /// Фабрика подключений к локальной базе данных SQLite
     /// Используется для хранения авторизационных данных
     /// </summary>
-    public class SqlLiteConnectionFactory : IDbConnectionFactory
+    public class SqlLiteConnectionFactory : ISqliteConnectionFactory
     {
         private readonly string _connectionString;
 
