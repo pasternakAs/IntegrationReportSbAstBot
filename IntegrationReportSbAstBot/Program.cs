@@ -2,6 +2,7 @@
 using IntegrationReportSbAstBot.Class.Options;
 using IntegrationReportSbAstBot.Data;
 using IntegrationReportSbAstBot.Interfaces;
+using IntegrationReportSbAstBot.Jobs;
 using IntegrationReportSbAstBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace IntegrationReportSbAstBot.Services
 {
@@ -33,8 +34,10 @@ namespace IntegrationReportSbAstBot.Services
         /// </summary>
         /// <param name="cancellationToken">Токен отмены для корректной остановки бота</param>
         /// <returns>Асинхронная задача завершения операции запуска</returns>
-        public async Task StartAsync(CancellationToken cancellationToken = default)
+        public async Task StartAsync()
         {
+            var cts = new CancellationTokenSource();
+
             var receiverOptions = new Telegram.Bot.Polling.ReceiverOptions
             {
                 AllowedUpdates = Array.Empty<UpdateType>()
@@ -44,10 +47,10 @@ namespace IntegrationReportSbAstBot.Services
                 updateHandler: HandleUpdateAsync,
                 errorHandler: HandlePollingErrorAsync,
                 receiverOptions: receiverOptions,
-                cancellationToken: cancellationToken
+                cancellationToken: cts.Token
             );
 
-            var me = await _botClient.GetMe(cancellationToken);
+            var me = await _botClient.GetMe(cts.Token);
             Console.WriteLine($"Бот @{me.Username} запущен в {DateTime.Now} и готов принимать сообщения...");
         }
 
@@ -67,13 +70,24 @@ namespace IntegrationReportSbAstBot.Services
             if (message.Text is not { } messageText)
                 return;
 
+            //var handler = _commandHandlers.FirstOrDefault(h => h.Command == text.Split(' ')[0]);
+            //if (handler != null)
+            //{
+            //    await handler.HandleAsync(message, cancellationToken);
+            //}
+            //else
+            //{
+            //    _logger.LogInformation("Неизвестная команда: {Text}", text);
+            //    await _botClient.SendMessage(message.Chat.Id, "❌ Неизвестная команда", cancellationToken: cancellationToken);
+            //}
+
             // Обработка команд
             await HandleCommandAsync(message, messageText, cancellationToken);
         }
 
         /// <summary>
         /// Обрабатывает текстовые команды от пользователей Telegram
-        /// Поддерживает команды: /start, /subscribe, /unsubscribe, /help
+        /// Поддерживает команды: /start, /subscribe, /unsubscribe, /help и т.д.
         /// </summary>
         /// <param name="message">Объект сообщения от пользователя</param>
         /// <param name="messageText">Текст команды для обработки</param>
@@ -99,15 +113,33 @@ namespace IntegrationReportSbAstBot.Services
                 return; // Просто игнорируем
             }
 
-            // Проверяем авторизацию для всех команд, кроме /start и /requestaccess
+            // Проверяем авторизацию для всех команд, кроме /start, /approve и /requestaccess
             if (!messageText.StartsWith("/start") &&
                 !messageText.StartsWith("/requestaccess") &&
+                !messageText.StartsWith("/approve") &&
                 !await _authorizationService.IsUserAuthorizedAsync(userId ?? 0))
             {
                 await _botClient.SendMessage(
                     chatId: chatId,
                     text: _botSettings.UnauthorizedMessage,
                     cancellationToken: cancellationToken);
+                return;
+            }
+
+            // Обрабатываем команды
+            if (messageText.StartsWith("/approve", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_botSettings.AdminUserIds.Contains(userId ?? 0))
+                {
+                    await HandleApproveAccess(message, messageText, cancellationToken);
+                }
+                else
+                {
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: "❌ Только администраторы могут одобрять запросы.",
+                        cancellationToken: cancellationToken);
+                }
                 return;
             }
 
@@ -204,10 +236,6 @@ namespace IntegrationReportSbAstBot.Services
                     await HandleRequestAccess(message, cancellationToken);
                     break;
 
-                case "/approve" when _botSettings.AdminUserIds.Contains(userId ?? 0):
-                    await HandleApproveAccess(message, cancellationToken);
-                    break;
-
                 case "/listrequests" when _botSettings.AdminUserIds.Contains(userId ?? 0):
                     await HandleListRequests(message, cancellationToken);
                     break;
@@ -244,8 +272,7 @@ namespace IntegrationReportSbAstBot.Services
             var welcomeMessage = $@"👋 Привет, {userName}!
                         🤖 Это бот для внутреннего использования СберА.
                         🔒 {status}
-                        📝 Для запроса доступа используйте команду: /requestaccess
-                                ";
+                        📝 Для запроса доступа используйте команду: /requestaccess";
 
             await _botClient.SendMessage(
                 chatId: chatId,
@@ -403,13 +430,13 @@ namespace IntegrationReportSbAstBot.Services
             }
         }
 
-        private async Task HandleApproveAccess(Telegram.Bot.Types.Message message, CancellationToken cancellationToken)
+        private async Task HandleApproveAccess(Telegram.Bot.Types.Message message, string fullCommand, CancellationToken cancellationToken)
         {
             var adminChatId = message.Chat.Id;
             var adminId = message.From?.Id ?? 0;
 
             // Извлекаем request_id из команды
-            var parts = message.Text?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var parts = fullCommand.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts?.Length < 2 || !long.TryParse(parts[1], out var requestId))
             {
                 await _botClient.SendMessage(
@@ -427,6 +454,9 @@ namespace IntegrationReportSbAstBot.Services
                     chatId: adminChatId,
                     text: $"✅ Запрос #{requestId} одобрен!",
                     cancellationToken: cancellationToken);
+
+                // Уведомляем пользователя об одобрении
+                await NotifyUserAboutApproval(requestId, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -434,6 +464,26 @@ namespace IntegrationReportSbAstBot.Services
                     chatId: adminChatId,
                     text: $"❌ Ошибка одобрения запроса: {ex.Message}",
                     cancellationToken: cancellationToken);
+            }
+        }
+
+        private async Task NotifyUserAboutApproval(long requestId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Получаем информацию о запросе
+                var request = await _authorizationService.GetAuthorizationRequestById(requestId);
+                if (request != null)
+                {
+                    await _botClient.SendMessage(
+                        chatId: request.ChatId,
+                        text: "✅ Ваш запрос на доступ к боту одобрен! Теперь вы можете использовать все функции бота.",
+                        cancellationToken: cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка уведомления пользователя об одобрении запроса #{RequestId}", requestId);
             }
         }
 

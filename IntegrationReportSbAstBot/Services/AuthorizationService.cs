@@ -216,5 +216,22 @@ namespace IntegrationReportSbAstBot.Services
                 throw;
             }
         }
+
+        public async Task<AuthorizationRequest> GetAuthorizationRequestById(long requestId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                var sql = "SELECT * FROM AuthorizationRequests WHERE Id = @RequestId";
+                return await connection.QueryFirstOrDefaultAsync<AuthorizationRequest>(sql, new { RequestId = requestId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка получения запроса авторизации #{RequestId}", requestId);
+                return null;
+            }
+        }
     }
 }

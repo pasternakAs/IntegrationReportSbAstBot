@@ -36,5 +36,12 @@ namespace IntegrationReportSbAstBot.Interfaces
         /// Отзывает доступ у пользователя
         /// </summary>
         Task RevokeUserAccessAsync(long userId);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="requestId"></param>
+        /// <returns></returns>
+        Task<AuthorizationRequest> GetAuthorizationRequestById(long requestId);
     }
 }

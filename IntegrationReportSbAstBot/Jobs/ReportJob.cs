@@ -6,7 +6,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace IntegrationReportSbAstBot.Class
+namespace IntegrationReportSbAstBot.Jobs
 {
     /// <summary>
     /// Задача Quartz для периодической генерации и отправки отчетов подписчикам через Telegram бота
@@ -173,7 +173,7 @@ namespace IntegrationReportSbAstBot.Class
                 else
                 {
                     // Если bodyHtml это содержимое файла
-                    var fileBytes = System.Text.Encoding.UTF8.GetBytes(bodyHtml);
+                    var fileBytes = Encoding.UTF8.GetBytes(bodyHtml);
                     using var stream = new MemoryStream(fileBytes);
                     await _bot.SendDocument(
                         chatId: chatId,
