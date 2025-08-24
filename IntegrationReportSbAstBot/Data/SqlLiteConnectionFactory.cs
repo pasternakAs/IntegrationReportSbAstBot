@@ -11,7 +11,6 @@ namespace IntegrationReportSbAstBot.Data
     /// </summary>
     public class SqlLiteConnectionFactory : IDbConnectionFactory
     {
-        private readonly DatabaseOptions _dbOptions;
         private readonly string _connectionString;
 
         /// <summary>
@@ -20,7 +19,6 @@ namespace IntegrationReportSbAstBot.Data
         /// <param name="options">Настройки базы данных SQLite</param>
         public SqlLiteConnectionFactory(Microsoft.Extensions.Options.IOptions<DatabaseOptions> options)
         {
-            _dbOptions = options.Value;
             _connectionString = options.Value.ConnectionString;
             InitializeDatabase();
         }

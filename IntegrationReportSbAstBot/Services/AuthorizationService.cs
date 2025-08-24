@@ -96,13 +96,12 @@ namespace IntegrationReportSbAstBot.Services
         /// <param name="adminId">ID администратора</param>
         public async Task ApproveAuthorizationRequestAsync(long requestId, long adminId)
         {
-            await using var connection = _connectionFactory.CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
+            await connection.OpenAsync();
             using var transaction = connection.BeginTransaction();
 
             try
             {
-                await connection.OpenAsync();
-
                 // Получаем данные запроса
                 const string getRequestSql = "SELECT UserId, UserName, ChatId FROM AuthorizationRequests WHERE Id = @RequestId";
                 var request = await connection.QueryFirstOrDefaultAsync<AuthorizationRequest>(getRequestSql, new { RequestId = requestId }) ?? throw new InvalidOperationException("Запрос не найден");
