@@ -1,7 +1,6 @@
 ﻿using Dapper;
 using IntegrationReportSbAstBot.Class;
 using IntegrationReportSbAstBot.Interfaces;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
