@@ -17,7 +17,7 @@ namespace IntegrationReportSbAstBot.Data
         /// Инициализирует фабрику подключений SQLite
         /// </summary>
         /// <param name="options">Настройки базы данных SQLite</param>
-        public SqlLiteConnectionFactory(Microsoft.Extensions.Options.IOptions<DatabaseOptions> options)
+        public SqlLiteConnectionFactory(Microsoft.Extensions.Options.IOptions<SqliteOptions> options)
         {
             _connectionString = options.Value.ConnectionString;
             InitializeDatabase();

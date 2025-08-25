@@ -34,7 +34,7 @@ builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Te
 builder.Services.Configure<QuartzJobOptions>(builder.Configuration.GetSection("Quartz:Jobs:ReportJob"));
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Database"));
 builder.Services.Configure<BotSettings>(builder.Configuration.GetSection("BotSettings"));
-builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Sqlite")); // Для SQLite
+builder.Services.Configure<SqliteOptions>(builder.Configuration.GetSection("Sqlite")); // Для SQLite
 
 // Telegram Bot
 builder.Services.AddSingleton<ITelegramBotClient>(provider =>

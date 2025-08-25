@@ -58,6 +58,13 @@ namespace IntegrationReportSbAstBot.Jobs
 
                 // Генерируем данные отчета
                 var generateReportData = await _reportService.GenerateReportAsync();
+
+                if (generateReportData.Packages.Count == 0) 
+                {
+                    _logger.LogInformation($"Данных для отчета нет");
+                    return;
+                }
+
                 // Формируем сообщение
                 var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.SummaryOfPackages.Count} шт.) за последние сутки";
 
