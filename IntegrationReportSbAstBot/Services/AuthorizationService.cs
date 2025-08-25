@@ -13,11 +13,11 @@ namespace IntegrationReportSbAstBot.Services
     /// <remarks>
     /// Инициализирует сервис авторизации
     /// </remarks>
-    /// <param name="connectionFactory">Фабрика подключений к базе данных</param>
+    /// <param name="sqliteConnectionFactory">Фабрика подключений к базе данных</param>
     /// <param name="logger">Логгер для записи событий</param>
-    public class AuthorizationService(IDbConnectionFactory connectionFactory, ILogger<AuthorizationService> logger, IOptions<BotSettings> botSettings) : IAuthorizationService
+    public class AuthorizationService(ISqliteConnectionFactory sqliteConnectionFactory, ILogger<AuthorizationService> logger, IOptions<BotSettings> botSettings) : IAuthorizationService
     {
-        private readonly IDbConnectionFactory _connectionFactory = connectionFactory;
+        private readonly ISqliteConnectionFactory _sqliteConnectionFactory = sqliteConnectionFactory;
         private readonly ILogger<AuthorizationService> _logger = logger;
         private readonly BotSettings _botSettings = botSettings.Value; // Добавляем настройки
 
@@ -36,7 +36,7 @@ namespace IntegrationReportSbAstBot.Services
 
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqliteConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = "SELECT COUNT(1) FROM AuthorizedUsers WHERE UserId = @UserId AND IsActive = 1";
@@ -62,7 +62,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqliteConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = @"
@@ -96,7 +96,7 @@ namespace IntegrationReportSbAstBot.Services
         /// <param name="adminId">ID администратора</param>
         public async Task ApproveAuthorizationRequestAsync(long requestId, long adminId)
         {
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = _sqliteConnectionFactory.CreateConnection();
             await connection.OpenAsync();
             using var transaction = connection.BeginTransaction();
 
@@ -154,7 +154,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqliteConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = "SELECT * FROM AuthorizationRequests WHERE IsProcessed = 0 ORDER BY RequestedAt ASC";
@@ -177,7 +177,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqliteConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = "SELECT * FROM AuthorizedUsers WHERE IsActive = 1 ORDER BY AuthorizedAt DESC";
@@ -200,7 +200,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqliteConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = "UPDATE AuthorizedUsers SET IsActive = 0 WHERE UserId = @UserId";
@@ -219,7 +219,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqliteConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = "SELECT * FROM AuthorizationRequests WHERE Id = @RequestId";

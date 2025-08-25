@@ -11,15 +11,15 @@ using Telegram.Bot.Types.Enums;
 
 namespace IntegrationReportSbAstBot.CommandHandler
 {
-    public class SubscribeCommandHandler
+    public class UnsubscribeCommandHandler
     {
         private readonly ITelegramBotClient _botClient;
         private readonly ISubscriberService _subscriberService;
-        private readonly ILogger<SubscribeCommandHandler> _logger;
+        private readonly ILogger<UnsubscribeCommandHandler> _logger;
 
-        public string Command => "/subscribe";
+        public string Command => "/unsubscribe";
 
-        public SubscribeCommandHandler(ITelegramBotClient botClient, ISubscriberService subscriberService, ILogger<SubscribeCommandHandler> logger)
+        public UnsubscribeCommandHandler(ITelegramBotClient botClient, ISubscriberService subscriberService, ILogger<UnsubscribeCommandHandler> logger)
         {
             _botClient = botClient;
             _subscriberService = subscriberService;
@@ -29,10 +29,10 @@ namespace IntegrationReportSbAstBot.CommandHandler
         public async Task HandleAsync(Message message, CancellationToken cancellationToken)
         {
             var chatType = message.Chat.Type; // Group, Supergroup, Private и т.д.
-            await _subscriberService.SubscribeUserAsync(message.Chat.Id);
+            await _subscriberService.UnsubscribeUserAsync(message.Chat.Id);
             await _botClient.SendMessage(
-                chatId: message.Chat.Id,
-                text: chatType != ChatType.Private ? "✅ Группа подписана на рассылки" : "✅ Вы успешно подписаны на отчёты",
+            chatId: message.Chat.Id,
+                 text: chatType != ChatType.Private ? "❌ Группа отписана от рассылки" : "❌ Вы отписались от рассылки.",
                 cancellationToken: cancellationToken
             );
 

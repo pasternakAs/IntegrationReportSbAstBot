@@ -10,10 +10,10 @@ namespace IntegrationReportSbAstBot.Services
     /// Сервис для генерации отчетов по информации о процедурах
     /// Выполняет запросы к базе данных, форматирует данные и готовит отчеты для отправки через Telegram
     /// </summary>
-    public class GenerateReportForProcedure(ILogger<GenerateReportForProcedure> logger, IDbConnectionFactory dbConnectionFactory) : IProcedureInfoService
+    public class GenerateReportForProcedure(ILogger<GenerateReportForProcedure> logger, ISqlConnectionFactory sqlConnectionFactory) : IProcedureInfoService
     {
         private readonly ILogger<GenerateReportForProcedure> _logger = logger;
-        private readonly IDbConnectionFactory _connectionFactory = dbConnectionFactory;
+        private readonly ISqlConnectionFactory _sqlConnectionFactory = sqlConnectionFactory;
 
         /// <summary>
         /// Получает информацию о документах процедуры из базы данных
@@ -27,7 +27,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqlConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = @"

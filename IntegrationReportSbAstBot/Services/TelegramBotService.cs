@@ -31,7 +31,6 @@ namespace IntegrationReportSbAstBot.Services
         /// Запускает бота в режиме polling для приема входящих сообщений
         /// Настраивает обработчики сообщений и ошибок, выводит информацию о запуске бота
         /// </summary>
-        /// <param name="cancellationToken">Токен отмены для корректной остановки бота</param>
         /// <returns>Асинхронная задача завершения операции запуска</returns>
         public async Task StartAsync()
         {

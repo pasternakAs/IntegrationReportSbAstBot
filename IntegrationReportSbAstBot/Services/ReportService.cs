@@ -9,21 +9,15 @@ namespace IntegrationReportSbAstBot.Services
     /// Сервис для генерации отчетов по пакетам документов
     /// Выполняет запросы к базе данных, собирает данные и формирует структуру отчета
     /// </summary>
-    public class ReportService : IReportService
+    /// <remarks>
+    /// Инициализирует новый экземпляр класса ReportService
+    /// </remarks>
+    /// <param name="sqlConnectionFactory">Фабрика подключений к базе данных</param>
+    /// <param name="logger">Логгер для записи информации и ошибок</param>
+    public class ReportService(ISqlConnectionFactory sqlConnectionFactory, ILogger<ReportService> logger) : IReportService
     {
-        private readonly IDbConnectionFactory _connectionFactory;
-        private readonly ILogger<ReportService> _logger;
-
-        /// <summary>
-        /// Инициализирует новый экземпляр класса ReportService
-        /// </summary>
-        /// <param name="connectionFactory">Фабрика подключений к базе данных</param>
-        /// <param name="logger">Логгер для записи информации и ошибок</param>
-        public ReportService(IDbConnectionFactory connectionFactory, ILogger<ReportService> logger)
-        {
-            _connectionFactory = connectionFactory;
-            _logger = logger;
-        }
+        private readonly ISqlConnectionFactory _sqlConnectionFactory = sqlConnectionFactory;
+        private readonly ILogger<ReportService> _logger = logger;
 
         /// <summary>
         /// Генерирует данные отчета по важным пакетам документов за последние сутки
@@ -37,7 +31,7 @@ namespace IntegrationReportSbAstBot.Services
 
             try
             {
-                using var connection = _connectionFactory.CreateConnection();
+                using var connection = _sqlConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 // Параметризованный запрос для безопасности

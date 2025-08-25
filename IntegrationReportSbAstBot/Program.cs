@@ -51,11 +51,11 @@ builder.Services.AddSingleton<ITelegramBotClient>(provider =>
 // Сервисы
 builder.Services.AddSingleton<ISubscriberService, SubscriberService>();
 builder.Services.AddSingleton<TelegramBotService>();
-builder.Services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
+builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<IReportService, ReportService>();
 builder.Services.AddSingleton<IReportHtmlService, ReportHtmlService>();
 builder.Services.AddSingleton<IProcedureInfoService, GenerateReportForProcedure>();
-builder.Services.AddSingleton<IDbConnectionFactory, SqlLiteConnectionFactory>(); // Для авторизации
+builder.Services.AddSingleton<ISqliteConnectionFactory, SqlLiteConnectionFactory>(); // Для авторизации
 builder.Services.AddSingleton<IAuthorizationService, AuthorizationService>();
 
 // Quartz
