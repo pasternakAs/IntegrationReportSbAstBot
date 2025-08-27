@@ -5,7 +5,7 @@ using Telegram.Bot.Types;
 
 namespace IntegrationReportSbAstBot.CommandHandler
 {
-    public class StartCommandHandler(ITelegramBotClient botClient, ILogger<StartCommandHandler> logger, IAuthorizationService authorizationService)
+    public class StartCommandHandler(ITelegramBotClient botClient, ILogger<StartCommandHandler> logger, IAuthorizationService authorizationService) : ICommandHandler
     {
         private readonly ITelegramBotClient _botClient = botClient;
         private readonly ILogger<StartCommandHandler> _logger = logger;

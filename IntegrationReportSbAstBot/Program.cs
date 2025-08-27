@@ -1,5 +1,6 @@
 ﻿using IntegrationReportSbAstBot.Class;
 using IntegrationReportSbAstBot.Class.Options;
+using IntegrationReportSbAstBot.CommandHandler;
 using IntegrationReportSbAstBot.Data;
 using IntegrationReportSbAstBot.Interfaces;
 using IntegrationReportSbAstBot.Jobs;
@@ -58,6 +59,16 @@ builder.Services.AddSingleton<IProcedureInfoService, GenerateReportForProcedure>
 builder.Services.AddSingleton<ISqliteConnectionFactory, SqlLiteConnectionFactory>(); // Sqlite
 builder.Services.AddSingleton<IAuthorizationService, AuthorizationService>();
 builder.Services.AddSingleton<IBotStateService, BotStateService>();
+//Handlers
+builder.Services.AddScoped<ICommandHandler, StartCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, ApproveCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, DisableCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, EnableCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, HelpCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, ListRequestsCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, RequestAccessCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, SubscribeCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, UnsubscribeCommandHandler>();
 
 // Quartz
 builder.Services.AddQuartz(q =>

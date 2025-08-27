@@ -95,34 +95,30 @@ namespace IntegrationReportSbAstBot.Services
                 return;
             }
 
-            // Проверяем команды управления для админов
-            if (_options.AdminUserIds.Contains(userId ?? 0))
+            if (!_botStateService.IsEnabledAsync().Result && _options.AdminUserIds.Contains(userId ?? 0))
             {
-                _botStateService.IsEnabledAsync();
+                await _botClient.SendMessage(
+                         chatId: chatId,
+                         text: welcomeMessage,
+                         cancellationToken: cancellationToken);
                 return;
             }
 
             var isAuthorized = await _authorizationService.IsUserAuthorizedAsync(message.From.Id);
             var status = isAuthorized ? "✅ Вы авторизованы" : "❌ Вы не авторизованы";
 
-            if (handler is IAuthorizedCommandHandler)
+            if (handler is IAuthorizedCommandHandler && !isAuthorized)
             {
                 welcomeMessage = $@"👋 Привет, {userName}!
                         🤖 Это бот для внутреннего использования СберА.
                         🔒 {status}
                         📝 Для запроса доступа используйте команду: /requestaccess";
-            }
-            else
-            {
-                welcomeMessage = $@"👋 Привет, {userName}!
-                        🤖 Это бот для внутреннего использования СберА.
-                        🔒 {status}";
-            }
 
-            await _botClient.SendMessage(
-              chatId: chatId,
-              text: welcomeMessage,
-              cancellationToken: cancellationToken);
+                await _botClient.SendMessage(
+                          chatId: chatId,
+                          text: welcomeMessage,
+                          cancellationToken: cancellationToken);
+            }
 
             _logger.LogInformation("Команда {Command} от пользователя {User}", command, message.Chat.Id);
             await handler.HandleAsync(message, cancellationToken);
