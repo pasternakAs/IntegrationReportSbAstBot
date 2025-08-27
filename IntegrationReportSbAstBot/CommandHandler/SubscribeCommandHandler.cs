@@ -6,20 +6,13 @@ using Telegram.Bot.Types.Enums;
 
 namespace IntegrationReportSbAstBot.CommandHandler
 {
-    public class SubscribeCommandHandler
+    public class SubscribeCommandHandler(ITelegramBotClient botClient, ISubscriberService subscriberService, ILogger<SubscribeCommandHandler> logger) : IAuthorizedCommandHandler
     {
-        private readonly ITelegramBotClient _botClient;
-        private readonly ISubscriberService _subscriberService;
-        private readonly ILogger<SubscribeCommandHandler> _logger;
+        private readonly ITelegramBotClient _botClient = botClient;
+        private readonly ISubscriberService _subscriberService = subscriberService;
+        private readonly ILogger<SubscribeCommandHandler> _logger = logger;
 
         public string Command => "/subscribe";
-
-        public SubscribeCommandHandler(ITelegramBotClient botClient, ISubscriberService subscriberService, ILogger<SubscribeCommandHandler> logger)
-        {
-            _botClient = botClient;
-            _subscriberService = subscriberService;
-            _logger = logger;
-        }
 
         public async Task HandleAsync(Message message, CancellationToken cancellationToken)
         {

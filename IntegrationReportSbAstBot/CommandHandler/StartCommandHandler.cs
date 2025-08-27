@@ -5,20 +5,13 @@ using Telegram.Bot.Types;
 
 namespace IntegrationReportSbAstBot.CommandHandler
 {
-    public class StartCommandHandler
+    public class StartCommandHandler(ITelegramBotClient botClient, ILogger<StartCommandHandler> logger, IAuthorizationService authorizationService)
     {
-        private readonly ITelegramBotClient _botClient;
-        private readonly ILogger<StartCommandHandler> _logger;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ITelegramBotClient _botClient = botClient;
+        private readonly ILogger<StartCommandHandler> _logger = logger;
+        private readonly IAuthorizationService _authorizationService = authorizationService;
 
         public string Command => "/start";
-
-        public StartCommandHandler(ITelegramBotClient botClient, ILogger<StartCommandHandler> logger, IAuthorizationService authorizationService)
-        {
-            _botClient = botClient;
-            _logger = logger;
-            _authorizationService = authorizationService;
-        }
 
         public async Task HandleAsync(Message message, CancellationToken cancellationToken)
         {

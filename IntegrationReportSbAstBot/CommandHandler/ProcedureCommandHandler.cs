@@ -8,7 +8,7 @@ namespace IntegrationReportSbAstBot.CommandHandler
     public class ProcedureCommandHandler(
         ITelegramBotClient botClient,
         IProcedureInfoService procedureInfoService,
-        ILogger<ProcedureCommandHandler> logger)
+        ILogger<ProcedureCommandHandler> logger) : IAuthorizedCommandHandler
     {
         private readonly ITelegramBotClient _botClient = botClient;
         private readonly IProcedureInfoService _procedureInfoService = procedureInfoService;

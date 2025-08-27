@@ -6,7 +6,7 @@ using Telegram.Bot.Types.Enums;
 
 namespace IntegrationReportSbAstBot.CommandHandler
 {
-    public class UnsubscribeCommandHandler
+    public class UnsubscribeCommandHandler : IAuthorizedCommandHandler
     {
         private readonly ITelegramBotClient _botClient;
         private readonly ISubscriberService _subscriberService;
