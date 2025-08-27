@@ -1,4 +1,4 @@
-﻿namespace IntegrationReportSbAstBot.Services
+﻿namespace IntegrationReportSbAstBot.Interfaces
 {
     public interface IBotStateService
     {

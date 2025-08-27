@@ -1,13 +1,17 @@
-﻿using IntegrationReportSbAstBot.Interfaces;
+﻿using IntegrationReportSbAstBot.Class;
+using IntegrationReportSbAstBot.Interfaces;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace IntegrationReportSbAstBot.CommandHandler
 {
-    public class RequestAccessCommandHandler(IAuthorizationService authorizationService, ITelegramBotClient telegramBotClient) : ICommandHandler
+    public class RequestAccessCommandHandler(IAuthorizationService authorizationService, ITelegramBotClient telegramBotClient, IOptions<BotSettings> botSettings) : ICommandHandler
     {
         private readonly ITelegramBotClient _botClient = telegramBotClient;
         private readonly IAuthorizationService _authorizationService = authorizationService;
+        private readonly BotSettings _botSettings = botSettings.Value;
+
         public string Command => "/requestaccess";
 
         public async Task HandleAsync(Message message, CancellationToken cancellationToken)
