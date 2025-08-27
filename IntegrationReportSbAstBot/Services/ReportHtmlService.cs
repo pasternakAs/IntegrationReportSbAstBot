@@ -25,27 +25,26 @@ namespace IntegrationReportSbAstBot.Class
             var sb = new StringBuilder();
 
             sb.Append($@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='utf-8'>
-    <title>Отчет по пакетам</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; }}
-        table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f2f2f2; }}
-        tr:nth-child(even) {{ background-color: #f9f9f9; }}
-    </style>
-</head>
-<body>
-    <h1>Отчет по важным пакетам</h1>
-    <p>Сформирован: {reportData.GeneratedAt:dd.MM.yyyy HH:mm}</p>
-    <p>Всего пакетов: {reportData.SummaryOfPackages.Count}</p>
-");
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Отчет по пакетам</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; }}
+                        table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+                        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                        th {{ background-color: #f2f2f2; }}
+                        tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                    </style>
+                </head>
+                <body>
+                    <h1>Отчет по важным пакетам</h1>
+                    <p>Сформирован: {reportData.GeneratedAt:dd.MM.yyyy HH:mm}</p>
+                    <p>Всего пакетов: {reportData.SummaryOfPackages.Count}</p>
+                ");
 
             // Добавляем блоки отчета
-            //sb.Append(GenerateDailySummaryTable(reportData)); // сводка за сутки
             sb.Append(GenerateSummaryTable(reportData));      // сводка по всем
             sb.Append(GenerateDetailTable(reportData));       // детализация
 

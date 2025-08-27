@@ -8,7 +8,7 @@ namespace IntegrationReportSbAstBot.CommandHandler
     {
         private readonly ITelegramBotClient _botClient;
         private readonly IBotStateService _botStateService;
-        public string Command => throw new NotImplementedException();
+        public string Command => "/enabled";
 
         public EnableCommandHandler(ITelegramBotClient botClient, IBotStateService botStateService)
         {

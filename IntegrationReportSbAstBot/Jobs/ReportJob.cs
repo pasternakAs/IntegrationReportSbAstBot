@@ -66,7 +66,7 @@ namespace IntegrationReportSbAstBot.Jobs
                 }
 
                 // Формируем сообщение
-                var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.SummaryOfPackages.Count} шт.) за последние сутки";
+                var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.SummaryOfPackages.Sum(x => x.Amount)} шт.) за последние сутки";
 
                 // Формируем HTML отчет
                 var htmlReport = _reportHtmlService.GenerateHtmlReport(generateReportData);

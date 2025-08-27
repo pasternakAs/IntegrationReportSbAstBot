@@ -51,7 +51,7 @@ namespace IntegrationReportSbAstBot.Services
 
                 // Получаем сами пакеты
                 var packagesSql = @"
-            SELECT docType as DocumentType
+                SELECT docType as DocumentType
                    , violations
                    , inout = CASE 
 		            WHEN InOut = 0 THEN 'AST --> EIS' 
@@ -59,11 +59,11 @@ namespace IntegrationReportSbAstBot.Services
 	                END
                    , ObjectId
                    , lastSendDate
-            FROM dbo.docOOSdoc WITH (NOLOCK)
-            WHERE (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
+                FROM dbo.docOOSdoc WITH (NOLOCK)
+                WHERE (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
                    OR docType LIKE 'epNotificationE%')
-              AND CreateDate >= @DateFrom
-              AND state IN (-1, -2)";
+                   AND CreateDate >= @DateFrom
+                   AND state IN (-1, -2)";
 
                 var packages = (await connection.QueryAsync<PackageInfo>(packagesSql, new { DateFrom = dateFrom })).ToList();
 
