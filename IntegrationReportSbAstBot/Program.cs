@@ -69,6 +69,7 @@ builder.Services.AddScoped<ICommandHandler, ListRequestsCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, RequestAccessCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, SubscribeCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, UnsubscribeCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, ProcedureCommandHandler>();
 
 // Quartz
 builder.Services.AddQuartz(q =>
