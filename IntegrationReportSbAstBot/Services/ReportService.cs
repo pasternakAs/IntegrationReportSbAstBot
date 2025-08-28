@@ -36,14 +36,15 @@ namespace IntegrationReportSbAstBot.Services
 
                 // Параметризованный запрос для безопасности
                 var sql = @"
-                SELECT COUNT(*) as Amount,
-                doctype as TypeDocument
-                FROM dbo.docOOSdoc WITH (NOLOCK)
-                WHERE CreateDate >= @DateFrom 
-                AND (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
-                   OR docType LIKE 'epNotificationE%')
-                AND state IN (-1, -2)
-                GROUP BY doctype";
+                    SELECT COUNT(*) as Amount,
+                        doctype as TypeDocument
+                    FROM dbo.docOOSdoc WITH (NOLOCK)
+                    WHERE CreateDate >= @DateFrom 
+                    AND ( docType LIKE 'epNotificationE%' 
+                       OR docType LIKE 'cpContract%'
+                          OR docType LIKE '%FinalPart%')
+                    AND state IN (-1, -2)
+                    GROUP BY doctype";
 
                 var dateFrom = DateTime.UtcNow.AddDays(-1);
 
@@ -60,8 +61,9 @@ namespace IntegrationReportSbAstBot.Services
                    , ObjectId
                    , lastSendDate
                 FROM dbo.docOOSdoc WITH (NOLOCK)
-                WHERE (docType IN ('epProtocolEZK2020FinalPart', 'epProtocolEF2020FinalPart')
-                   OR docType LIKE 'epNotificationE%')
+                WHERE (docType LIKE 'epNotificationE%' 
+                       OR docType LIKE 'cpContract%'
+                          OR docType LIKE '%FinalPart%')
                    AND CreateDate >= @DateFrom
                    AND state IN (-1, -2)";
 
