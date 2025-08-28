@@ -12,11 +12,6 @@ namespace IntegrationReportSbAstBot.Services
     /// Обрабатывает входящие сообщения, команды пользователей и управляет подписками
     /// Обеспечивает запуск и работу бота в режиме polling
     /// </summary>
-    /// <remarks>
-    /// Инициализирует новый экземпляр класса TelegramBotService
-    /// </remarks>
-    /// <param name="botClient">Клиент Telegram бота для отправки и получения сообщений</param>
-    /// <param name="subscriberService">Сервис управления подписчиками для управления списком подписчиков</param>
     public class TelegramBotService(ITelegramBotClient botClient, ILogger<TelegramBotService> logger, IEnumerable<ICommandHandler> commandHandler, IAuthorizationService authorizationService, IBotStateService botStateService, IOptions<BotSettings> options)
     {
         private readonly ITelegramBotClient _botClient = botClient;
@@ -30,12 +25,13 @@ namespace IntegrationReportSbAstBot.Services
         /// Запускает бота в режиме polling для приема входящих сообщений
         /// Настраивает обработчики сообщений и ошибок, выводит информацию о запуске бота
         /// </summary>
+        /// <param name="cancellationToken">Токен отмены для корректной остановки бота</param>
         /// <returns>Асинхронная задача завершения операции запуска</returns>
         public async Task StartAsync(CancellationToken cancellationToken = default)
         {
             var receiverOptions = new ReceiverOptions
             {
-                AllowedUpdates = { } // все типы апдейтов
+                AllowedUpdates = Array.Empty<Telegram.Bot.Types.Enums.UpdateType>() // все типы апдейтов
             };
 
             _botClient.StartReceiving(
@@ -54,25 +50,28 @@ namespace IntegrationReportSbAstBot.Services
         /// Обработчик входящих обновлений от Telegram API
         /// Фильтрует сообщения и передает их на обработку команд
         /// </summary>
-        /// <param name="botClient">Клиент бота (не используется, так как есть поле класса)</param>
+        /// <param name="botClient">Клиент бота для взаимодействия с Telegram API</param>
         /// <param name="update">Объект обновления от Telegram API</param>
         /// <param name="cancellationToken">Токен отмены для асинхронных операций</param>
         /// <returns>Асинхронная задача обработки обновления</returns>
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Telegram.Bot.Types.Update update, CancellationToken cancellationToken)
         {
+            // Проверяем, что обновление содержит сообщение и текст
             if (update.Message is not { } message || message.Text is null)
                 return;
 
-            // Обработка команд с параметрами
+            // Обрабатываем только команды (сообщения, начинающиеся с /)
             if (!message.Text.StartsWith("/", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            // Отсекаем сообщения старше 5 минут
+            // Отсекаем старые сообщения (старше 5 минут) для предотвращения обработки устаревших команд
             var messageAge = DateTime.UtcNow - message.Date;
             if (messageAge.TotalMinutes > 5)
             {
+                _logger.LogDebug("Игнорируем старое сообщение от пользователя {User} (возраст: {Age} минут)",
+                    message.Chat.Id, messageAge.TotalMinutes);
                 return; // Просто игнорируем
             }
 
@@ -80,50 +79,91 @@ namespace IntegrationReportSbAstBot.Services
             var userId = message.From?.Id;
             var userName = message.From?.Username ?? message.From?.FirstName ?? "Unknown";
             var command = message.Text.Split(' ')[0]; // первая часть текста как команда
-            var welcomeMessage = "";
 
+            // Проверяем, включен ли бот
+            if (!_botStateService.IsEnabledAsync().Result)
+            {
+                // Если бот выключен, разрешаем только администраторам использовать команды
+                if (!_options.AdminUserIds.Contains(userId ?? 0))
+                {
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: _options.MaintenanceMessage,
+                        cancellationToken: cancellationToken);
+                    return;
+                }
+            }
+
+            // Ищем обработчик для команды
             var handler = _commandHandler.FirstOrDefault(h => h.Command.Equals(command, StringComparison.OrdinalIgnoreCase));
             if (handler == null)
             {
                 _logger.LogWarning("Неизвестная команда {Command} от пользователя {User}", command, message.Chat.Id);
-                await botClient.SendMessage(
-                    chatId: message.Chat.Id,
+                await _botClient.SendMessage(
+                    chatId: chatId,
                     text: "❓ Неизвестная команда. Попробуйте /start",
-                    cancellationToken: cancellationToken
-                );
-
+                    cancellationToken: cancellationToken);
                 return;
             }
 
-            if (!_botStateService.IsEnabledAsync().Result && _options.AdminUserIds.Contains(userId ?? 0))
+            // Проверяем авторизацию для команд, требующих авторизации
+            if (handler is IAuthorizedCommandHandler)
             {
-                await _botClient.SendMessage(
-                         chatId: chatId,
-                         text: welcomeMessage,
-                         cancellationToken: cancellationToken);
-                return;
+                var isAuthorized = await _authorizationService.IsUserAuthorizedAsync(userId ?? 0);
+                if (!isAuthorized)
+                {
+                    // Если пользователь не авторизован, отправляем сообщение с предложением авторизоваться
+                    var welcomeMessage = $@"👋 Привет, {userName}!
+                                            🤖 Это бот для внутреннего использования СберА.
+                                            🔒 ❌ Вы не авторизованы
+                                            📝 Для запроса доступа используйте команду: /requestaccess";
+
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: welcomeMessage,
+                        cancellationToken: cancellationToken);
+                    return;
+                }
             }
 
-            var isAuthorized = await _authorizationService.IsUserAuthorizedAsync(message.From.Id);
-            var status = isAuthorized ? "✅ Вы авторизованы" : "❌ Вы не авторизованы";
-
-            if (handler is IAuthorizedCommandHandler && !isAuthorized)
+            // Проверяем права администратора для административных команд
+            if (handler is IAdminCommandHandler)
             {
-                welcomeMessage = $@"👋 Привет, {userName}!
-                        🤖 Это бот для внутреннего использования СберА.
-                        🔒 {status}
-                        📝 Для запроса доступа используйте команду: /requestaccess";
-
-                await _botClient.SendMessage(
-                          chatId: chatId,
-                          text: welcomeMessage,
-                          cancellationToken: cancellationToken);
+                if (!_options.AdminUserIds.Contains(userId ?? 0))
+                {
+                    await _botClient.SendMessage(
+                        chatId: chatId,
+                        text: "❌ Только администраторы могут выполнять эту команду.",
+                        cancellationToken: cancellationToken);
+                    return;
+                }
             }
 
             _logger.LogInformation("Команда {Command} от пользователя {User}", command, message.Chat.Id);
-            await handler.HandleAsync(message, cancellationToken);
+
+            // Обрабатываем команду
+            try
+            {
+                await handler.HandleAsync(message, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обработке команды {Command} пользователем {User}", command, message.Chat.Id);
+                await _botClient.SendMessage(
+                    chatId: chatId,
+                    text: "⚠️ Произошла ошибка при обработке команды.",
+                    cancellationToken: cancellationToken);
+            }
         }
 
+        /// <summary>
+        /// Обработчик ошибок polling режима работы бота
+        /// Логирует ошибки и обеспечивает стабильную работу бота
+        /// </summary>
+        /// <param name="bot">Клиент бота, в котором произошла ошибка</param>
+        /// <param name="exception">Исключение, возникшее во время работы бота</param>
+        /// <param name="cancellationToken">Токен отмены для асинхронных операций</param>
+        /// <returns>Асинхронная задача завершения обработки ошибки</returns>
         private Task HandleErrorAsync(ITelegramBotClient bot, Exception exception, CancellationToken cancellationToken)
         {
             _logger.LogError(exception, "Ошибка в TelegramBotService");
