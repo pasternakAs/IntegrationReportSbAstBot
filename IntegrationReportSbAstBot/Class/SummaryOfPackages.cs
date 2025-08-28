@@ -1,14 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace IntegrationReportSbAstBot.Class
+﻿namespace IntegrationReportSbAstBot.Class
 {
+    /// <summary>
+    /// Представляет сводную информацию о количестве документов по типам
+    /// Используется для формирования статистических отчетов и аналитики по документообороту
+    /// </summary>
     public class SummaryOfPackages
     {
+        /// <summary>
+        /// Тип документа или категории документов
+        /// Определяет классификацию документов для группировки в сводном отчете
+        /// </summary>
+        /// <example>"Счет-фактура", "Накладная", "Акт выполненных работ", "Протокол закупки"</example>
+        /// <remarks>
+        /// Может содержать как конкретные типы документов, так и агрегированные категории
+        /// Например: "Финансовые документы", "Документы закупок", "Отчетная документация"
+        /// </remarks>
         public string TypeDocument { get; set; }
+
+        /// <summary>
+        /// Количество документов указанного типа
+        /// Числовое значение, представляющее количество документов в данной категории
+        /// </summary>
+        /// <example>15, 23, 7, 156</example>
+        /// <remarks>
+        /// Всегда неотрицательное целое число
+        /// Ноль означает отсутствие документов данного типа в выборке
+        /// </remarks>
         public int Amount { get; set; }
     }
 }
