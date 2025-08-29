@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using Dapper;
 using IntegrationReportSbAstBot.Class;
 using IntegrationReportSbAstBot.Interfaces;
@@ -30,7 +31,7 @@ namespace IntegrationReportSbAstBot.Services
                 await using var connection = _sqlConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                var sql = @"
+                const string sql = @"
                 SELECT
 	            [act] = CASE 
 		            WHEN docOut.InOut = 0 THEN 'AST --> EIS' 
@@ -63,7 +64,7 @@ namespace IntegrationReportSbAstBot.Services
                 var parameters = new { pcode = objectId, inout = inOut };
                 var result = await connection.QueryAsync<ProcedureInfo>(sql, parameters);
 
-                return result.ToList();
+                return [.. result];
             }
             catch (Exception ex)
             {
@@ -82,27 +83,31 @@ namespace IntegrationReportSbAstBot.Services
         public string FormatProcedureDocuments(string objectId, List<ProcedureInfo> documents)
         {
             var sb = new StringBuilder();
+
+            sb.Append($@"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Отчет по пакетам</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; }}
+                        table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+                        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                        th {{ background-color: #f2f2f2; }}
+                        tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                    </style>
+                </head>
+                <body>
+                    <h1>Отчет по процедуре</h1>
+                ");
+
             sb.AppendLine($"<b>Документы по процедуре: {objectId}</b>\n");
+            sb.Append($"<i>Всего документов: {documents.Count}</i>\n");
 
-            foreach (var doc in documents)
-            {
-                sb.AppendLine($"📝 <b>Тип:</b> {doc.DocType}");
-                sb.AppendLine($"🔢 <b>Номер протокола:</b> {doc.ProtocolNumber ?? "Нет"}");
-                sb.AppendLine($"🔄 <b>Направление:</b> {doc.Act}");
-                sb.AppendLine($"📊 <b>Статус:</b> {GetStateDescription(doc.State)}");
-                sb.AppendLine($"📅 <b>Создан:</b> {doc.CreateDate:dd.MM.yyyy HH:mm}");
-                sb.AppendLine($"📤 <b>Отправлен:</b> {doc.LastSendDate:dd.MM.yyyy HH:mm}");
+            sb.Append(GenerateDetailTable(documents));
 
-                if (!string.IsNullOrEmpty(doc.ViolationsXML))
-                {
-                    sb.AppendLine($"⚠️ <b>Нарушения:</b> Есть нарушения");
-                }
-
-                sb.AppendLine($"🔗 <b>ID:</b> {doc.OOSDocId}");
-                sb.AppendLine();
-            }
-
-            sb.AppendLine($"<i>Всего документов: {documents.Count}</i>");
+            sb.Append("</body></html>");
 
             return sb.ToString();
         }
@@ -119,8 +124,10 @@ namespace IntegrationReportSbAstBot.Services
             {
                 -1 => "Ошибка",
                 -2 => "Предупреждение",
-                0 => "Обработан",
-                1 => "В обработке",
+                1 => "Провалидирован",
+                2 => "Ожидает принятия",
+                0 => "В обработке",
+                3 => "Принят",
                 _ => state.ToString()
             };
         }
@@ -166,6 +173,72 @@ namespace IntegrationReportSbAstBot.Services
             }
 
             return parts;
+        }
+
+        /// <summary>
+        /// Экранирует специальные символы HTML для корректного отображения в Telegram
+        /// </summary>
+        /// <param name="text">Текст для экранирования</param>
+        /// <returns>Экранированный текст</returns>
+        private static string EscapeHtml(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            return text.Replace("&", "&amp;")
+                      .Replace("<", "<")
+                      .Replace(">", ">")
+                      .Replace("\"", "&quot;")
+                      .Replace("'", "&#39;");
+        }
+
+        /// <summary>
+        /// Генерирует детализированную таблицу по каждому пакету.
+        /// Для каждого пакета выводятся:
+        ///  - идентификатор процедуры (ObjectId),
+        ///  - тип пакета (DocumentType),
+        ///  - ошибка (Violations),
+        ///  - направление (InOut),
+        ///  - последняя дата отправки (LastSendDate).
+        /// </summary>
+        /// <param name="listProcedureInfo">Данные по пакетам.</param>
+        /// <returns>HTML-код таблицы.</returns>
+        private static string GenerateDetailTable(List<ProcedureInfo> listProcedureInfo)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append(@"
+                <h2>Детализация</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Тип</th>
+                            <th>Номер протокола</th>
+                            <th>Направление</th>
+                            <th>Статус</th>
+                            <th>Тип статуса</th>
+                            <th>Создан</th>
+                            <th>Отправлен</th>
+                        </tr>
+                    </thead>
+                    <tbody>");
+
+            foreach (var procedure in listProcedureInfo.OrderByDescending(p => p.LastSendDate))
+            {
+                sb.Append($@"
+                <tr>
+                    <td>{WebUtility.HtmlEncode(procedure.DocType.ToString())}</td>
+                    <td>{WebUtility.HtmlEncode(procedure.ProtocolNumber)}</td>
+                    <td>{WebUtility.HtmlEncode(procedure.Act)}</td>
+                    <td>{WebUtility.HtmlEncode(procedure.State.ToString())}</td>
+                    <td>{WebUtility.HtmlEncode(GetStateDescription(procedure.State))}</td>
+                    <td>{procedure.CreateDate:dd.MM.yyyy HH:mm}</td>
+                    <td>{procedure.LastSendDate:dd.MM.yyyy HH:mm}</td>
+                </tr>");
+            }
+
+            sb.Append("</tbody></table>");
+            return sb.ToString();
         }
     }
 }

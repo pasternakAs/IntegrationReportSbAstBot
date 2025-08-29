@@ -59,7 +59,7 @@ namespace IntegrationReportSbAstBot.Class
         /// </summary>
         /// <param name="reportData">Данные по пакетам</param>
         /// <returns>HTML-код таблицы</returns>
-        private string GenerateSummaryTable(ReportDataClass reportData)
+        private static string GenerateSummaryTable(ReportDataClass reportData)
         {
             var sb = new StringBuilder();
 
@@ -98,7 +98,7 @@ namespace IntegrationReportSbAstBot.Class
         /// </summary>
         /// <param name="reportData">Данные по пакетам.</param>
         /// <returns>HTML-код таблицы.</returns>
-        private string GenerateDetailTable(ReportDataClass reportData)
+        private static string GenerateDetailTable(ReportDataClass reportData)
         {
             var sb = new StringBuilder();
 

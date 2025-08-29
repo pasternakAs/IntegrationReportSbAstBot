@@ -1,4 +1,6 @@
-﻿using IntegrationReportSbAstBot.Interfaces;
+﻿using System.Text;
+using IntegrationReportSbAstBot.Interfaces;
+using IntegrationReportSbAstBot.Services;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -98,18 +100,13 @@ namespace IntegrationReportSbAstBot.CommandHandler
 
                 // Формируем и отправляем отформатированный ответ пользователю
                 var response = _procedureInfoService.FormatProcedureDocuments(procedureNumber, procedureInfo);
+                var fileName = $"report_{DateTime.Now:yyyyMMdd_HHmmss}.html";
+                var filePath = Path.Combine(Path.GetTempPath(), fileName);
+                // Сохраняем HTML в временный файл
+                await File.WriteAllTextAsync(filePath, response, Encoding.UTF8);
 
-                // Разбиваем длинное сообщение на части если необходимо
-                //var messageParts = _procedureInfoService.SplitMessage(response);
-
-                //foreach (var part in messageParts)
-                //{
-                    await _botClient.SendMessage(
-                        chatId: chatId,
-                        text: response,
-                        parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
-                        cancellationToken: cancellationToken);
-                //}
+                var tasks = SendDocumentAsync(chatId, filePath);
+                await Task.WhenAll(tasks);
 
                 // Логируем успешное выполнение запроса для мониторинга использования
                 _logger.LogInformation("Пользователь {User} получил отчёт по процедурам {ProcedureNumber}", message.Chat.Id, procedureNumber);
@@ -139,6 +136,50 @@ namespace IntegrationReportSbAstBot.CommandHandler
         {
             // Проверяем, что строка содержит только цифры и имеет достаточную длину
             return procedureNumber.All(char.IsDigit) && procedureNumber.Length >= 10;
+        }
+
+        /// <summary>
+        /// Отправляет HTML документ отчета пользователю Telegram
+        /// </summary>
+        /// <param name="chatId">Идентификатор чата пользователя</param>
+        /// <param name="bodyHtml">Путь к HTML файлу или содержимое файла</param>
+        /// <returns>Асинхронная задача</returns>
+        private async Task SendDocumentAsync(long chatId, string bodyHtml)
+        {
+            try
+            {
+                string fileName = $"report_{DateTime.Now:yyyyMMdd}.html";
+
+                // Если bodyHtml это путь к файлу
+                if (File.Exists(bodyHtml))
+                {
+                    using var fileStream = new FileStream(bodyHtml, FileMode.Open, FileAccess.Read);
+                    await _botClient.SendDocument(
+                        chatId: chatId,
+                        document: new InputFileStream(fileStream, fileName),
+                        caption: "Отчет в формате HTML");
+                }
+                else
+                {
+                    // Если bodyHtml это содержимое файла
+                    var fileBytes = Encoding.UTF8.GetBytes(bodyHtml);
+                    using var stream = new MemoryStream(fileBytes);
+                    await _botClient.SendDocument(
+                        chatId: chatId,
+                        document: new InputFileStream(stream, fileName),
+                        caption: "Отчет в формате HTML");
+                }
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
+            {
+                // Пользователь заблокировал бота
+                //await _subscriberService.UnsubscribeUserAsync(chatId);
+                _logger.LogInformation($"Пользователь {chatId} заблокировал бота и был удален из списка");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Ошибка отправки документа {chatId}");
+            }
         }
     }
 }
