@@ -66,7 +66,7 @@ namespace IntegrationReportSbAstBot.Jobs
                 }
 
                 // Формируем сообщение
-                var messageText = $"📈 Отчёт по важным пакетам ({generateReportData.SummaryOfPackages.Sum(x => x.Amount)} шт.) за последние сутки";
+                var messageText = $"📈 Отчёт по важным пакетам в количестве ({generateReportData.SummaryOfPackages.Sum(x => x.Amount)} шт.) за последние сутки";
 
                 // Формируем HTML отчет
                 var htmlReport = _reportHtmlService.GenerateHtmlReport(generateReportData);
@@ -95,33 +95,6 @@ namespace IntegrationReportSbAstBot.Jobs
             finally
             {
                 _logger.LogInformation("Завершение ReportJob в {Time}", DateTime.Now);
-            }
-        }
-
-        /// <summary>
-        /// Отправляет текстовое сообщение пользователю Telegram
-        /// </summary>
-        /// <param name="chatId">Идентификатор чата пользователя</param>
-        /// <param name="messageText">Текст сообщения для отправки</param>
-        /// <returns>Асинхронная задача</returns>
-        private async Task SendMessageAsync(long chatId, string messageText)
-        {
-            try
-            {
-                await _bot.SendMessage(
-                    chatId: chatId,
-                    text: messageText,
-                    parseMode: ParseMode.Html);
-            }
-            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
-            {
-                // Пользователь заблокировал бота
-                await _subscriberService.UnsubscribeUserAsync(chatId);
-                _logger.LogInformation($"Пользователь {chatId} заблокировал бота и был удален из списка");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Ошибка отправки сообщения {chatId}");
             }
         }
 

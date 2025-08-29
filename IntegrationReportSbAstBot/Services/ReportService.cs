@@ -19,66 +19,61 @@ namespace IntegrationReportSbAstBot.Services
         private readonly ISqlConnectionFactory _sqlConnectionFactory = sqlConnectionFactory;
         private readonly ILogger<ReportService> _logger = logger;
 
-        /// <summary>
-        /// Генерирует данные отчета по важным пакетам документов за последние сутки
-        /// Выполняет два запроса: подсчет общего количества и получение детальной информации
-        /// </summary>
-        /// <returns>Асинхронная задача, возвращающая данные отчета ReportDataClass</returns>
-        /// <exception cref="Exception">Выбрасывается при ошибках выполнения запросов к базе данных</exception>
-        public async Task<ReportDataClass> GenerateReportAsync()
+        public async Task<ReportDataClass> GenerateReportAsync(CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Генерируем данные отчета по важным пакетам документов за последние сутки");
+            _logger.LogInformation("Генерация отчета начата {Time}", DateTime.Now);
 
             try
             {
                 using var connection = _sqlConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
 
-                // Параметризованный запрос для безопасности
-                var sql = @"
-                    SELECT COUNT(*) as Amount,
-                        doctype as TypeDocument
-                    FROM dbo.docOOSdoc WITH (NOLOCK)
-                    WHERE CreateDate >= @DateFrom 
-                    AND ( docType LIKE 'epNotificationE%' 
-                       OR docType LIKE 'cpContract%'
-                          OR docType LIKE '%FinalPart%')
-                    AND state IN (-1, -2)
-                    GROUP BY doctype";
+                var dateFrom = DateTime.Now.AddDays(-1);
 
-                var dateFrom = DateTime.UtcNow.AddDays(-1);
-
-                var summaryOfPackages = (await connection.QueryAsync<SummaryOfPackages>(sql, new { DateFrom = dateFrom })).ToList();
-
-                // Получаем сами пакеты
-                var packagesSql = @"
-                SELECT docType as DocumentType
-                   , violations
-                   , inout = CASE 
-		            WHEN InOut = 0 THEN 'AST --> EIS' 
-		            WHEN InOut = 1 THEN 'AST <-- EIS' 
-	                END
-                   , ObjectId
-                   , lastSendDate
+                // Сводка
+                const string summarySql = @"
+                SELECT COUNT(*) as Amount,
+                       docType as TypeDocument
                 FROM dbo.docOOSdoc WITH (NOLOCK)
-                WHERE (docType LIKE 'epNotificationE%' 
-                       OR docType LIKE 'cpContract%'
-                          OR docType LIKE '%FinalPart%')
-                   AND CreateDate >= @DateFrom
-                   AND state IN (-1, -2)";
+                WHERE CreateDate >= @DateFrom 
+                  AND (docType LIKE 'epNotificationE%' 
+                       OR docType LIKE 'cpContract%' 
+                       OR docType LIKE '%FinalPart%')
+                  AND state IN (-1, -2)
+                GROUP BY docType";
 
-                var packages = (await connection.QueryAsync<PackageInfo>(packagesSql, new { DateFrom = dateFrom })).ToList();
+                var summary = (await connection.QueryAsync<SummaryOfPackages>(
+                    summarySql, new { DateFrom = dateFrom })).ToList();
+
+                // Детализация
+                const string detailsSql = @"
+                SELECT docType as DocumentType,
+                       violations,
+                       inout = CASE 
+                                    WHEN InOut = 0 THEN 'AST --> EIS' 
+                                    WHEN InOut = 1 THEN 'AST <-- EIS' 
+                               END,
+                       ObjectId,
+                       lastSendDate
+                FROM dbo.docOOSdoc WITH (NOLOCK)
+                WHERE CreateDate >= @DateFrom
+                  AND (docType LIKE 'epNotificationE%' 
+                       OR docType LIKE 'cpContract%' 
+                       OR docType LIKE '%FinalPart%')
+                  AND state IN (-1, -2)";
+
+                var packages = (await connection.QueryAsync<PackageInfo>(
+                    detailsSql, new { DateFrom = dateFrom })).ToList();
 
                 return new ReportDataClass
                 {
-                    SummaryOfPackages = summaryOfPackages ?? [],
+                    SummaryOfPackages = summary ?? [],
                     Packages = packages,
-                    GeneratedAt = DateTime.UtcNow
+                    GeneratedAt = DateTime.Now
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка генерации отчета");
+                _logger.LogError(ex, "Ошибка при генерации отчета");
                 throw;
             }
         }

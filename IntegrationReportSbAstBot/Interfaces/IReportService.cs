@@ -4,6 +4,6 @@ namespace IntegrationReportSbAstBot.Interfaces
 {
     public interface IReportService
     {
-        Task<ReportDataClass> GenerateReportAsync();
+        Task<ReportDataClass> GenerateReportAsync(CancellationToken cancellationToken = default);
     }
 }

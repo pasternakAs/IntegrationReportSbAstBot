@@ -89,6 +89,12 @@ builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 var host = builder.Build();
 
+// Инициализация таблицы состояния бота
+using (var scope = host.Services.CreateScope())
+{
+    var botState = scope.ServiceProvider.GetRequiredService<IBotStateService>();
+    await botState.InitializeAsync();
+}
 //Запуск Telegram Bot 
 var telegramBotService = host.Services.GetRequiredService<TelegramBotService>();
 await telegramBotService.StartAsync();
