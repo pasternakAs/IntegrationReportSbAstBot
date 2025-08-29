@@ -27,7 +27,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _sqlConnectionFactory.CreateConnection();
+                await using var connection = _sqlConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 var sql = @"

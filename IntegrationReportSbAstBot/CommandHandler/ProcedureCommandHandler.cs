@@ -100,16 +100,16 @@ namespace IntegrationReportSbAstBot.CommandHandler
                 var response = _procedureInfoService.FormatProcedureDocuments(procedureNumber, procedureInfo);
 
                 // Разбиваем длинное сообщение на части если необходимо
-                var messageParts = _procedureInfoService.SplitMessage(response);
+                //var messageParts = _procedureInfoService.SplitMessage(response);
 
-                foreach (var part in messageParts)
-                {
+                //foreach (var part in messageParts)
+                //{
                     await _botClient.SendMessage(
                         chatId: chatId,
-                        text: part,
+                        text: response,
                         parseMode: Telegram.Bot.Types.Enums.ParseMode.Html,
                         cancellationToken: cancellationToken);
-                }
+                //}
 
                 // Логируем успешное выполнение запроса для мониторинга использования
                 _logger.LogInformation("Пользователь {User} получил отчёт по процедурам {ProcedureNumber}", message.Chat.Id, procedureNumber);
