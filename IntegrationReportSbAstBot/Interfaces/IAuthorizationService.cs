@@ -42,6 +42,6 @@ namespace IntegrationReportSbAstBot.Interfaces
         /// </summary>
         /// <param name="requestId"></param>
         /// <returns></returns>
-        Task<AuthorizationRequest> GetAuthorizationRequestById(long requestId);
+        Task<AuthorizationRequest?> GetAuthorizationRequestById(long requestId);
     }
 }

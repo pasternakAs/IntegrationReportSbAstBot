@@ -36,10 +36,9 @@ namespace IntegrationReportSbAstBot.Services
 
             try
             {
-                using var connection = _sqliteConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
+                await using var connection = _sqliteConnectionFactory.CreateConnection();
 
-                var sql = "SELECT COUNT(1) FROM AuthorizedUsers WHERE UserId = @UserId AND IsActive = 1";
+                const string sql = "SELECT COUNT(1) FROM AuthorizedUsers WHERE UserId = @UserId AND IsActive = 1";
                 var result = await connection.QuerySingleAsync<int>(sql, new { UserId = userId });
 
                 return result > 0;
@@ -60,12 +59,14 @@ namespace IntegrationReportSbAstBot.Services
         /// <param name="requestMessage">Сообщение с запросом</param>
         public async Task CreateAuthorizationRequestAsync(long userId, string userName, long chatId, string requestMessage)
         {
+            if (string.IsNullOrWhiteSpace(userName)) userName = "Unknown";
+            if (string.IsNullOrWhiteSpace(requestMessage)) requestMessage = "-";
+
             try
             {
                 using var connection = _sqliteConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
 
-                var sql = @"
+                const string sql = @"
                     INSERT INTO AuthorizationRequests 
                     (UserId, UserName, ChatId, RequestedAt, RequestMessage, IsApproved, IsProcessed)
                     VALUES 
@@ -77,7 +78,7 @@ namespace IntegrationReportSbAstBot.Services
                     UserName = userName,
                     ChatId = chatId,
                     RequestedAt = DateTime.UtcNow,
-                    RequestMessage = requestMessage
+                    RequestMessage = requestMessage.Trim()
                 });
 
                 _logger.LogInformation("Создан запрос на авторизацию для пользователя {UserId}", userId);
@@ -96,9 +97,8 @@ namespace IntegrationReportSbAstBot.Services
         /// <param name="adminId">ID администратора</param>
         public async Task ApproveAuthorizationRequestAsync(long requestId, long adminId)
         {
-            using var connection = _sqliteConnectionFactory.CreateConnection();
-            await connection.OpenAsync();
-            using var transaction = connection.BeginTransaction();
+            await using var connection = _sqliteConnectionFactory.CreateConnection();
+            await using var transaction = connection.BeginTransaction();
 
             try
             {
@@ -107,7 +107,7 @@ namespace IntegrationReportSbAstBot.Services
                 var request = await connection.QueryFirstOrDefaultAsync<AuthorizationRequest>(getRequestSql, new { RequestId = requestId }) ?? throw new InvalidOperationException("Запрос не найден");
 
                 // Обновляем статус запроса
-                var updateRequestSql = @"
+                const string updateRequestSql = @"
                     UPDATE AuthorizationRequests 
                     SET IsApproved = 1, IsProcessed = 1, ProcessedBy = @AdminId, ProcessedAt = @ProcessedAt
                     WHERE Id = @RequestId";
@@ -120,7 +120,7 @@ namespace IntegrationReportSbAstBot.Services
                 });
 
                 // Добавляем пользователя в авторизованные
-                var insertUserSql = @"
+                const string insertUserSql = @"
                     INSERT OR REPLACE INTO AuthorizedUsers 
                     (UserId, UserName, ChatId, AuthorizedAt, AuthorizedBy, IsActive)
                     VALUES 
@@ -128,15 +128,18 @@ namespace IntegrationReportSbAstBot.Services
 
                 await connection.ExecuteAsync(insertUserSql, new
                 {
-                    UserId = request.UserId,
-                    UserName = request.UserName,
-                    ChatId = request.ChatId,
+                    request.UserId,
+                    request.UserName,
+                    request.ChatId,
                     AuthorizedAt = DateTime.UtcNow,
                     AuthorizedBy = adminId
                 });
 
                 transaction.Commit();
-                _logger.LogInformation("Одобрен запрос на авторизацию #{RequestId} для пользователя {UserId}", requestId, request.UserId);
+
+                _logger.LogInformation(
+                           "Одобрен запрос на авторизацию #{RequestId} для пользователя {UserId} администратором {AdminId}",
+                           requestId, request.UserId, adminId);
             }
             catch (Exception ex)
             {
@@ -154,18 +157,20 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _sqliteConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
+                await using var connection = _sqliteConnectionFactory.CreateConnection();
+                const string sql = "SELECT * " +
+                    "FROM AuthorizationRequests " +
+                    "WHERE IsProcessed = 0 " +
+                    "ORDER BY RequestedAt ASC";
 
-                var sql = "SELECT * FROM AuthorizationRequests WHERE IsProcessed = 0 ORDER BY RequestedAt ASC";
                 var result = await connection.QueryAsync<AuthorizationRequest>(sql);
 
-                return result.ToList();
+                return [.. result];
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка получения списка запросов авторизации");
-                return new List<AuthorizationRequest>();
+                return [];
             }
         }
 
@@ -177,13 +182,11 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                using var connection = _sqliteConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
-
-                var sql = "SELECT * FROM AuthorizedUsers WHERE IsActive = 1 ORDER BY AuthorizedAt DESC";
+                await using var connection = _sqliteConnectionFactory.CreateConnection();
+                const string sql = "SELECT * FROM AuthorizedUsers WHERE IsActive = 1 ORDER BY AuthorizedAt DESC";
                 var result = await connection.QueryAsync<AuthorizedUser>(sql);
 
-                return result.ToList();
+                return [.. result];
             }
             catch (Exception ex)
             {
@@ -201,9 +204,8 @@ namespace IntegrationReportSbAstBot.Services
             try
             {
                 using var connection = _sqliteConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
+                const string sql = "UPDATE AuthorizedUsers SET IsActive = 0 WHERE UserId = @UserId";
 
-                var sql = "UPDATE AuthorizedUsers SET IsActive = 0 WHERE UserId = @UserId";
                 await connection.ExecuteAsync(sql, new { UserId = userId });
 
                 _logger.LogInformation("Отозван доступ у пользователя {UserId}", userId);
@@ -215,14 +217,13 @@ namespace IntegrationReportSbAstBot.Services
             }
         }
 
-        public async Task<AuthorizationRequest> GetAuthorizationRequestById(long requestId)
+        public async Task<AuthorizationRequest?> GetAuthorizationRequestById(long requestId)
         {
             try
             {
-                using var connection = _sqliteConnectionFactory.CreateConnection();
-                await connection.OpenAsync();
+                await using var connection = _sqliteConnectionFactory.CreateConnection();
+                const string sql = "SELECT * FROM AuthorizationRequests WHERE Id = @RequestId";
 
-                var sql = "SELECT * FROM AuthorizationRequests WHERE Id = @RequestId";
                 return await connection.QueryFirstOrDefaultAsync<AuthorizationRequest>(sql, new { RequestId = requestId });
             }
             catch (Exception ex)
