@@ -53,7 +53,7 @@ namespace IntegrationReportSbAstBot.Services
                                     WHEN InOut = 1 THEN 'AST <-- EIS' 
                                END,
                        ObjectId,
-                       lastSendDate
+                       COALESCE(lastSendDate, CreateDate) as lastSendDate
                 FROM dbo.docOOSdoc WITH (NOLOCK)
                 WHERE CreateDate >= @DateFrom
                   AND (docType LIKE 'epNotificationE%' 
