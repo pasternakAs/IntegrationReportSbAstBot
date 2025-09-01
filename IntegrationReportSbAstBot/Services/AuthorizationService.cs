@@ -98,6 +98,7 @@ namespace IntegrationReportSbAstBot.Services
         public async Task ApproveAuthorizationRequestAsync(long requestId, long adminId)
         {
             await using var connection = _sqliteConnectionFactory.CreateConnection();
+            connection.Open();
             await using var transaction = connection.BeginTransaction();
 
             try
