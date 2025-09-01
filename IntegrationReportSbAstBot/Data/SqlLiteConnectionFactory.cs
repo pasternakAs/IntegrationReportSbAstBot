@@ -41,7 +41,7 @@ namespace IntegrationReportSbAstBot.Data
             connection.Open();
 
             // Создаем таблицу запросов на авторизацию
-            var createRequestsTable = @"
+            const string createRequestsTable = @"
                 CREATE TABLE IF NOT EXISTS AuthorizationRequests (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId INTEGER NOT NULL,
@@ -56,7 +56,7 @@ namespace IntegrationReportSbAstBot.Data
                 )";
 
             // Создаем таблицу авторизованных пользователей
-            var createUsersTable = @"
+            const string createUsersTable = @"
                 CREATE TABLE IF NOT EXISTS AuthorizedUsers (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId INTEGER UNIQUE NOT NULL,
@@ -65,7 +65,8 @@ namespace IntegrationReportSbAstBot.Data
                     AuthorizedAt TEXT NOT NULL,
                     AuthorizedBy INTEGER NOT NULL,
                     IsActive INTEGER DEFAULT 1,
-                    Notes TEXT
+                    Notes TEXT,
+                    IsSubscribe INTEGER DEFAULT 0
                 )";
 
             using var commandCreateRequestsTable = new SqliteCommand(createRequestsTable, connection);

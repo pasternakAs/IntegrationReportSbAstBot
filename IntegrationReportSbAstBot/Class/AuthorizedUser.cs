@@ -65,5 +65,7 @@
         /// </summary>
         /// <example>"Сотрудник отдела закупок", "Временный доступ до 31.12.2024"</example>
         public string Notes { get; set; }
+
+        public bool IsSubscribe { get; set; }
     }
 }
