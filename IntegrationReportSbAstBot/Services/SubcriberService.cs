@@ -32,17 +32,21 @@ namespace IntegrationReportSbAstBot.Services
             {
                 if (!_subscribers.Contains(chatId))
                 {
-                    var result = SaveUserForBroadcast(chatId, 1);
-                    if (result.Result)
-                    {
-                        _subscribers.Add(chatId);
-                        Console.WriteLine($"Пользователь {chatId} подписался");
-                        _logger.LogInformation("Пользователь {ChatId} успешно подписался на рассылку", chatId);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Не удалось сохранить статус подписки для пользователя {ChatId}", chatId);
-                    }
+                    _subscribers.Add(chatId);
+                    Console.WriteLine($"Пользователь {chatId} подписался");
+                    _logger.LogInformation("Пользователь {ChatId} успешно подписался на рассылку", chatId);
+
+                    //var result = SaveUserForBroadcast(chatId, 1);
+                    //if (result.Result)
+                    //{
+                    //    _subscribers.Add(chatId);
+                    //    Console.WriteLine($"Пользователь {chatId} подписался");
+                    //    _logger.LogInformation("Пользователь {ChatId} успешно подписался на рассылку", chatId);
+                    //}
+                    //else
+                    //{
+                    //    _logger.LogWarning("Не удалось сохранить статус подписки для пользователя {ChatId}", chatId);
+                    //}
                 }
             }
             return Task.CompletedTask;
@@ -62,16 +66,23 @@ namespace IntegrationReportSbAstBot.Services
         {
             lock (_lock)
             {
-                var result = SaveUserForBroadcast(chatId, 0);
-                if (result.Result)
+                if (_subscribers.Contains(chatId))
                 {
                     _subscribers.Remove(chatId);
                     Console.WriteLine($"Пользователь {chatId} отписался");
                     _logger.LogInformation("Пользователь {ChatId} успешно отписался от рассылки", chatId);
-                }
-                else
-                {
-                    _logger.LogWarning("Не удалось сохранить статус отписки для пользователя {ChatId}", chatId);
+
+                    //var result = SaveUserForBroadcast(chatId, 0);
+                    //if (result.Result)
+                    //{
+                    //    _subscribers.Remove(chatId);
+                    //    Console.WriteLine($"Пользователь {chatId} отписался");
+                    //    _logger.LogInformation("Пользователь {ChatId} успешно отписался от рассылки", chatId);
+                    //}
+                    //else
+                    //{
+                    //    _logger.LogWarning("Не удалось сохранить статус отписки для пользователя {ChatId}", chatId);
+                    //}
                 }
             }
             return Task.CompletedTask;
