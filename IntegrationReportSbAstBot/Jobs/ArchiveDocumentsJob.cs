@@ -34,13 +34,16 @@ namespace IntegrationReportSbAstBot.Class.Jobs
                 // Выполняем архивирование документов
                 var archivedCount = await _archiveService.ArchiveDocumentsWithKindErrorsAsync();
 
-                // Формируем сообщение
-                var message = archivedCount > 0
-                    ? $"✅ Автоматическое архивирование завершено\nАрхивировано документов: {archivedCount}"
-                    : "ℹ️ Автоматическое архивирование завершено\nНет документов для архивирования";
+                if (archivedCount > 0)
+                {
+                    // Формируем сообщение
+                    var message = archivedCount > 0
+                        ? $"✅ Автоматическое архивирование завершено\nАрхивировано документов: {archivedCount}"
+                        : "ℹ️ Автоматическое архивирование завершено\nНет документов для архивирования";
 
-                // Отправляем сообщение подписчикам
-                await SendNotificationToSubscribersAsync(message);
+                    // Отправляем сообщение подписчикам
+                    await SendNotificationToSubscribersAsync(message);
+                }
 
                 _logger.LogInformation("ArchiveDocumentsJob успешно завершен. Архивировано: {Count} документов", archivedCount);
             }
