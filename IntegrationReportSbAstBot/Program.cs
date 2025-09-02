@@ -1,4 +1,5 @@
 ﻿using IntegrationReportSbAstBot.Class;
+using IntegrationReportSbAstBot.Class.Jobs;
 using IntegrationReportSbAstBot.Class.Options;
 using IntegrationReportSbAstBot.CommandHandler;
 using IntegrationReportSbAstBot.Data;
@@ -59,6 +60,8 @@ builder.Services.AddSingleton<IProcedureInfoService, GenerateReportForProcedure>
 builder.Services.AddSingleton<ISqliteConnectionFactory, SqlLiteConnectionFactory>(); // Sqlite
 builder.Services.AddSingleton<IAuthorizationService, AuthorizationService>();
 builder.Services.AddSingleton<IBotStateService, BotStateService>();
+builder.Services.AddSingleton<DocumentArchiveService>();
+
 //Handlers
 builder.Services.AddScoped<ICommandHandler, StartCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, ApproveCommandHandler>();
@@ -83,6 +86,13 @@ builder.Services.AddQuartz(q =>
     q.ScheduleJob<ReportJob>(trigger => trigger
         .WithIdentity("ReportJob-trigger")
         .WithCronSchedule(options.CronSchedule));
+
+    // Новый Job для архивирования документов
+    var archiveCron = builder.Configuration["Quartz:Jobs:ArchiveDocumentsJob:CronSchedule"] ?? "0 0/30 * * * ?";
+
+    q.ScheduleJob<ArchiveDocumentsJob>(trigger => trigger
+      .WithIdentity("ReportJobArchive-trigger")
+      .WithCronSchedule(archiveCron));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
@@ -98,5 +108,12 @@ using (var scope = host.Services.CreateScope())
 //Запуск Telegram Bot 
 var telegramBotService = host.Services.GetRequiredService<TelegramBotService>();
 await telegramBotService.StartAsync();
+
+// Синхронизируем подписчиков при запуске
+var subscriberService = host.Services.GetRequiredService<ISubscriberService>();
+if (subscriberService is SubscriberService service)
+{
+    await service.SyncSubscribersAsync(); // Синхронизируем данные
+}
 
 await host.RunAsync();

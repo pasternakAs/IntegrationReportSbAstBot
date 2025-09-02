@@ -26,30 +26,43 @@ namespace IntegrationReportSbAstBot.Services
         /// Выполняет потокобезопасное добавление в память и персистентное сохранение в базу данных
         /// Логирует успешные операции и ошибки для мониторинга
         /// </remarks>
-        public Task SubscribeUserAsync(long chatId)
+        public async Task SubscribeUserAsync(long chatId, bool isGroup = false, string chatName = null)
         {
-            lock (_lock)
+            try
             {
-                if (!_subscribers.Contains(chatId))
-                {
-                    _subscribers.Add(chatId);
-                    Console.WriteLine($"Пользователь {chatId} подписался");
-                    _logger.LogInformation("Пользователь {ChatId} успешно подписался на рассылку", chatId);
+                // Сохраняем подписчика в базу данных и проверяем результат
+                var isSaved = await SaveSubscriberToDatabase(chatId, isGroup, chatName, true);
 
-                    //var result = SaveUserForBroadcast(chatId, 1);
-                    //if (result.Result)
-                    //{
-                    //    _subscribers.Add(chatId);
-                    //    Console.WriteLine($"Пользователь {chatId} подписался");
-                    //    _logger.LogInformation("Пользователь {ChatId} успешно подписался на рассылку", chatId);
-                    //}
-                    //else
-                    //{
-                    //    _logger.LogWarning("Не удалось сохранить статус подписки для пользователя {ChatId}", chatId);
-                    //}
+                if (isSaved)
+                {
+                    lock (_lock)
+                    {
+                        if (!_subscribers.Contains(chatId))
+                        {
+                            _subscribers.Add(chatId);
+                        }
+                    }
+
+                    _logger.LogInformation("{ChatType} {ChatId} успешно подписался на рассылку",
+                        isGroup ? "Группа" : "Пользователь", chatId);
+                }
+                else
+                {
+                    _logger.LogWarning("Не удалось сохранить подписку для чата {ChatId} в базу данных", chatId);
                 }
             }
-            return Task.CompletedTask;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при подписке чата {ChatId}", chatId);
+                // Даже если ошибка БД, добавляем в память для временной работы
+                lock (_lock)
+                {
+                    if (!_subscribers.Contains(chatId))
+                    {
+                        _subscribers.Add(chatId);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -62,30 +75,41 @@ namespace IntegrationReportSbAstBot.Services
         /// Выполняет потокобезопасное удаление из памяти и персистентное обновление в базе данных
         /// Логирует успешные операции и ошибки для мониторинга
         /// </remarks>
-        public Task UnsubscribeUserAsync(long chatId)
+        public async Task UnsubscribeUserAsync(long chatId)
         {
-            lock (_lock)
+            try
             {
-                if (_subscribers.Contains(chatId))
-                {
-                    _subscribers.Remove(chatId);
-                    Console.WriteLine($"Пользователь {chatId} отписался");
-                    _logger.LogInformation("Пользователь {ChatId} успешно отписался от рассылки", chatId);
+                // Обновляем статус подписчика в базе данных и проверяем результат
+                var isSaved = await SaveSubscriberToDatabase(chatId, false, null, false);
 
-                    //var result = SaveUserForBroadcast(chatId, 0);
-                    //if (result.Result)
-                    //{
-                    //    _subscribers.Remove(chatId);
-                    //    Console.WriteLine($"Пользователь {chatId} отписался");
-                    //    _logger.LogInformation("Пользователь {ChatId} успешно отписался от рассылки", chatId);
-                    //}
-                    //else
-                    //{
-                    //    _logger.LogWarning("Не удалось сохранить статус отписки для пользователя {ChatId}", chatId);
-                    //}
+                if (isSaved)
+                {
+                    lock (_lock)
+                    {
+                        _subscribers.Remove(chatId);
+                    }
+
+                    _logger.LogInformation("Чат {ChatId} успешно отписался от рассылки", chatId);
+                }
+                else
+                {
+                    _logger.LogWarning("Не удалось сохранить отписку для чата {ChatId} в базу данных", chatId);
+                    // Удаляем из памяти даже если БД не обновилась
+                    lock (_lock)
+                    {
+                        _subscribers.Remove(chatId);
+                    }
                 }
             }
-            return Task.CompletedTask;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при отписке чата {ChatId}", chatId);
+                // Удаляем из памяти даже при ошибке БД
+                lock (_lock)
+                {
+                    _subscribers.Remove(chatId);
+                }
+            }
         }
 
         /// <summary>
@@ -106,18 +130,19 @@ namespace IntegrationReportSbAstBot.Services
         }
 
         /// <summary>
-        /// Сохраняет или обновляет статус подписки пользователя в базе данных
-        /// Обновляет поле IsSubscribe в таблице AuthorizedUsers для управления рассылкой
+        /// Сохраняет или обновляет информацию о подписчике в базе данных
         /// </summary>
-        /// <param name="chatId">Идентификатор чата пользователя в Telegram (UserId)</param>
-        /// <param name="isSubscribe">Статус подписки: 1 - подписан, 0 - отписан</param>
+        /// <param name="chatId">Идентификатор чата</param>
+        /// <param name="isGroup">Флаг группы</param>
+        /// <param name="chatName">Название чата</param>
+        /// <param name="isActive">Статус активности подписки</param>
         /// <returns>Асинхронная задача, возвращающая true если операция успешна, иначе false</returns>
         /// <remarks>
         /// Использует параметризованный SQL-запрос для предотвращения SQL-инъекций
         /// Логирует ошибки базы данных для диагностики проблем
         /// Возвращает false в случае ошибок базы данных или отсутствия пользователя
         /// </remarks>
-        public async Task<bool> SaveUserForBroadcast(long chatId, int isSubscribe)
+        public async Task<bool> SaveSubscriberToDatabase(long chatId, bool isGroup, string chatName, bool isActive)
         {
             try
             {
@@ -125,19 +150,79 @@ namespace IntegrationReportSbAstBot.Services
                 await connection.OpenAsync();
 
                 const string sql = @"
-                    UPDATE AuthorizedUsers 
-                    SET IsSubscribe = @IsSubscribe 
-                    WHERE UserId = @UserId";
+                    INSERT OR REPLACE INTO Subscribers 
+                    (ChatId, IsGroup, ChatName, SubscribedAt, IsActive, LastUpdated)
+                    VALUES 
+                    (@ChatId, @IsGroup, @ChatName, 
+                     CASE WHEN EXISTS(SELECT 1 FROM Subscribers WHERE ChatId = @ChatId) 
+                          THEN (SELECT SubscribedAt FROM Subscribers WHERE ChatId = @ChatId)
+                          ELSE @CurrentTime END,
+                     @IsActive, @CurrentTime)";
 
-                var result = await connection.ExecuteAsync(sql, new { IsSubscribe = isSubscribe, UserId = chatId });
+                var result = await connection.ExecuteAsync(sql, new
+                {
+                    ChatId = chatId,
+                    IsGroup = isGroup ? 1 : 0,
+                    ChatName = chatName,
+                    IsActive = isActive ? 1 : 0,
+                    CurrentTime = DateTime.UtcNow.ToString("o")
+                });
 
                 // ExecuteAsync возвращает количество затронутых строк
                 return result > 0;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка сохранения статуса подписки пользователя {UserId}", chatId);
+                _logger.LogError(ex, "Ошибка сохранения подписчика {ChatId} в базу данных", chatId);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Получает всех активных подписчиков из базы данных
+        /// </summary>
+        /// <returns>Список идентификаторов активных подписчиков</returns>
+        public async Task<List<long>> GetActiveSubscribersFromDatabaseAsync()
+        {
+            try
+            {
+                await using var connection = _sqliteConnectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                const string sql = "SELECT ChatId FROM Subscribers WHERE IsActive = 1";
+                var result = await connection.QueryAsync<long>(sql);
+
+                return [.. result];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка получения активных подписчиков из базы данных");
+                return [];
+            }
+        }
+
+        /// <summary>
+        /// Синхронизирует список подписчиков в памяти с базой данных
+        /// </summary>
+        /// <returns>Асинхронная задача завершения синхронизации</returns>
+        public async Task SyncSubscribersAsync()
+        {
+            try
+            {
+                var databaseSubscribers = await GetActiveSubscribersFromDatabaseAsync();
+
+                lock (_lock)
+                {
+                    // Очищаем текущий список и добавляем подписчиков из базы
+                    _subscribers.Clear();
+                    _subscribers.AddRange(databaseSubscribers);
+                }
+
+                _logger.LogInformation("Список подписчиков синхронизирован. Всего подписчиков: {Count}", databaseSubscribers.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка синхронизации подписчиков");
             }
         }
     }
