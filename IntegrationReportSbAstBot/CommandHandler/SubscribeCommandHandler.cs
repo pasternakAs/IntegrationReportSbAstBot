@@ -1,4 +1,5 @@
-﻿using IntegrationReportSbAstBot.Interfaces;
+﻿using IntegrationReportSbAstBot.Class;
+using IntegrationReportSbAstBot.Interfaces;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -39,9 +40,15 @@ namespace IntegrationReportSbAstBot.CommandHandler
         public async Task HandleAsync(Message message, CancellationToken cancellationToken)
         {
             var chatType = message.Chat.Type; // Group, Supergroup, Private и т.д.
+            var chatId = message.Chat.Id; // Group, Supergroup, Private и т.д.
+
+            if (_subscriberService.GetSubscribersAsync().Result.Contains(chatId))
+            {
+                return;
+            }
 
             // Добавляем пользователя/группу в список подписчиков
-            await _subscriberService.SubscribeUserAsync(message.Chat.Id);
+            await _subscriberService.SubscribeUserAsync(message.Chat.Id, chatType != ChatType.Private, message.Chat.FirstName ?? "");
 
             // Отправляем персонализированное подтверждение подписки
             await _botClient.SendMessage(

@@ -69,11 +69,24 @@ namespace IntegrationReportSbAstBot.Data
                     IsSubscribe INTEGER DEFAULT 0
                 )";
 
+            const string createSubscribeTable = @"
+                    CREATE TABLE IF NOT EXISTS Subscribers (
+                        ChatId INTEGER PRIMARY KEY,
+                        IsGroup INTEGER DEFAULT 0,
+                        ChatName TEXT,
+                        SubscribedAt TEXT NOT NULL,
+                        IsActive INTEGER DEFAULT 1,
+                        LastUpdated TEXT NOT NULL
+                    )";
+
             using var commandCreateRequestsTable = new SqliteCommand(createRequestsTable, connection);
             commandCreateRequestsTable.ExecuteNonQuery();
 
             using var commandCreateUsersTable = new SqliteCommand(createUsersTable, connection);
             commandCreateUsersTable.ExecuteNonQuery();
+
+            using var commandSubscribeTable = new SqliteCommand(createSubscribeTable, connection);
+            commandSubscribeTable.ExecuteNonQuery();
         }
     }
 }
