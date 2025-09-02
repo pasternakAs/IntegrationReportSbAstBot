@@ -88,7 +88,9 @@ builder.Services.AddQuartz(q =>
         .WithCronSchedule(options.CronSchedule));
 
     // Новый Job для архивирования документов
-    var archiveCron = builder.Configuration["Quartz:Jobs:ArchiveDocumentsJob:CronSchedule"] ?? "0 0/30 * * * ?";
+    var archiveOptions = builder.Configuration.GetSection("Quartz:Jobs:ArchiveDocumentsJob").Get<QuartzJobOptions>();
+    var archiveCron = archiveOptions?.CronSchedule ?? "0 0/30 * * * ?"; // Значение по умолчанию
+    Console.WriteLine($"[Quartz] ArchiveDocumentsJob Cron: {archiveCron}");
 
     q.ScheduleJob<ArchiveDocumentsJob>(trigger => trigger
       .WithIdentity("ReportJobArchive-trigger")
