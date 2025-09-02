@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using IntegrationReportSbAstBot.Class;
+using IntegrationReportSbAstBot.Data;
 using IntegrationReportSbAstBot.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Data;
@@ -9,9 +10,9 @@ namespace IntegrationReportSbAstBot.Services
     /// <summary>
     /// Сервис для архивирования документов с ошибками валидации
     /// </summary>
-    public class DocumentArchiveService(IDbConnectionFactory connectionFactory, ILogger<DocumentArchiveService> logger)
+    public class DocumentArchiveService(ISqlConnectionFactory sqlConnectionFactory, ILogger<DocumentArchiveService> logger)
     {
-        private readonly IDbConnectionFactory _connectionFactory = connectionFactory;
+        private readonly ISqlConnectionFactory _sqlConnectionFactory = sqlConnectionFactory;
         private readonly ILogger<DocumentArchiveService> _logger = logger;
 
         /// <summary>
@@ -22,7 +23,7 @@ namespace IntegrationReportSbAstBot.Services
         {
             try
             {
-                await using var connection = _connectionFactory.CreateConnection();
+                await using var connection = _sqlConnectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
                 // Начинаем транзакцию
