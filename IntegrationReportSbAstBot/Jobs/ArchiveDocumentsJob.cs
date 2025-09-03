@@ -27,6 +27,13 @@ namespace IntegrationReportSbAstBot.Class.Jobs
         /// </summary>
         public async Task Execute(IJobExecutionContext context)
         {
+            // Проверяем, разрешено ли выполнение Job
+            if (!JobManagementService.CanExecuteJob("ArchiveDocumentsJob"))
+            {
+                _logger.LogInformation("ArchiveDocumentsJob отключен, выполнение пропущено");
+                return;
+            }
+
             _logger.LogInformation("Начало выполнения ArchiveDocumentsJob в {Time}", DateTime.Now);
 
             try

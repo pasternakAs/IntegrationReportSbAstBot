@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using IntegrationReportSbAstBot.Interfaces;
+using IntegrationReportSbAstBot.Services;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Telegram.Bot;
@@ -12,30 +13,21 @@ namespace IntegrationReportSbAstBot.Jobs
     /// Задача Quartz для периодической генерации и отправки отчетов подписчикам через Telegram бота
     /// Выполняет сбор данных, формирование HTML отчета и рассылку всем активным подписчикам
     /// </summary>
-    public class ReportJob : IJob
+    /// <remarks>
+    /// Инициализирует новый экземпляр класса ReportJob
+    /// </remarks>
+    /// <param name="bot">Клиент Telegram бота для отправки сообщений</param>
+    /// <param name="logger">Логгер для записи информации о выполнении задачи</param>
+    /// <param name="subscriberService">Сервис управления подписчиками</param>
+    /// <param name="reportService">Сервис генерации данных отчета</param>
+    /// <param name="reportHtmlService">Сервис формирования HTML отчета</param>
+    public class ReportJob(ITelegramBotClient bot, ILogger<ReportJob> logger, ISubscriberService subscriberService, IReportService reportService, IReportHtmlService reportHtmlService) : IJob
     {
-        private readonly ITelegramBotClient _bot;
-        private readonly ILogger<ReportJob> _logger;
-        private readonly ISubscriberService _subscriberService;
-        private readonly IReportService _reportService;
-        private readonly IReportHtmlService _reportHtmlService;
-
-        /// <summary>
-        /// Инициализирует новый экземпляр класса ReportJob
-        /// </summary>
-        /// <param name="bot">Клиент Telegram бота для отправки сообщений</param>
-        /// <param name="logger">Логгер для записи информации о выполнении задачи</param>
-        /// <param name="subscriberService">Сервис управления подписчиками</param>
-        /// <param name="reportService">Сервис генерации данных отчета</param>
-        /// <param name="reportHtmlService">Сервис формирования HTML отчета</param>
-        public ReportJob(ITelegramBotClient bot, ILogger<ReportJob> logger, ISubscriberService subscriberService, IReportService reportService, IReportHtmlService reportHtmlService)
-        {
-            _bot = bot;
-            _logger = logger;
-            _subscriberService = subscriberService;
-            _reportService = reportService;
-            _reportHtmlService = reportHtmlService;
-        }
+        private readonly ITelegramBotClient _bot = bot;
+        private readonly ILogger<ReportJob> _logger = logger;
+        private readonly ISubscriberService _subscriberService = subscriberService;
+        private readonly IReportService _reportService = reportService;
+        private readonly IReportHtmlService _reportHtmlService = reportHtmlService;
 
         /// <summary>
         /// Выполняет основную логику задачи: генерирует отчет и отправляет его всем подписчикам
@@ -44,6 +36,13 @@ namespace IntegrationReportSbAstBot.Jobs
         /// <returns>Асинхронная задача</returns>
         public async Task Execute(IJobExecutionContext context)
         {
+            // Проверяем, разрешено ли выполнение Job
+            if (!JobManagementService.CanExecuteJob("ReportJob"))
+            {
+                _logger.LogInformation("ReportJob отключен, выполнение пропущено");
+                return;
+            }
+
             _logger.LogInformation("Начало выполнения ReportJob в {Time}", DateTime.Now);
 
             try
@@ -59,7 +58,7 @@ namespace IntegrationReportSbAstBot.Jobs
                 // Генерируем данные отчета
                 var generateReportData = await _reportService.GenerateReportAsync();
 
-                if (generateReportData.Packages.Count == 0) 
+                if (generateReportData.Packages.Count == 0)
                 {
                     _logger.LogInformation($"Данных для отчета нет");
                     return;

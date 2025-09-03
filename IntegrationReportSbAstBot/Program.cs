@@ -61,6 +61,8 @@ builder.Services.AddSingleton<ISqliteConnectionFactory, SqlLiteConnectionFactory
 builder.Services.AddSingleton<IAuthorizationService, AuthorizationService>();
 builder.Services.AddSingleton<IBotStateService, BotStateService>();
 builder.Services.AddSingleton<DocumentArchiveService>();
+builder.Services.AddSingleton<IJobManagementService, JobManagementService>();
+builder.Services.AddSingleton<KtruMonitoringService>();
 
 //Handlers
 builder.Services.AddScoped<ICommandHandler, StartCommandHandler>();
@@ -73,6 +75,9 @@ builder.Services.AddScoped<ICommandHandler, RequestAccessCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, SubscribeCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, UnsubscribeCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, ProcedureCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, EnableJobCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, DisableJobCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, JobsStatusCommandHandler>();
 
 // Quartz
 builder.Services.AddQuartz(q =>
@@ -95,6 +100,15 @@ builder.Services.AddQuartz(q =>
     q.ScheduleJob<ArchiveDocumentsJob>(trigger => trigger
       .WithIdentity("ReportJobArchive-trigger")
       .WithCronSchedule(archiveCron));
+
+    // Новый Job для ктру документов
+    var ktruOptions = builder.Configuration.GetSection("Quartz:Jobs:KtruMonitoringJob").Get<QuartzJobOptions>();
+    var ktruCron = ktruOptions?.CronSchedule ?? "0 0/30 * * * ?"; // Значение по умолчанию
+    Console.WriteLine($"[Quartz] KtruMonitoringJob Cron: {archiveCron}");
+
+    q.ScheduleJob<KtruMonitoringJob>(trigger => trigger
+      .WithIdentity("ReportJobKtru-trigger")
+      .WithCronSchedule(ktruCron));
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
