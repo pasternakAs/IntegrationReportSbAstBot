@@ -35,9 +35,9 @@ namespace IntegrationReportSbAstBot.Class.Jobs
                 var problemPackages = await _monitoringService.GetProblematicKtruPackagesAsync();
 
                 // Отправляем алерт только если есть проблемные пакеты
-                if (problemPackages.Any())
+                if (problemPackages.Count != 0)
                 {
-                    var message = _monitoringService.FormatMonitoringMessage(problemPackages);
+                    var message = KtruMonitoringService.FormatMonitoringMessage(problemPackages);
                     await SendAlertToSubscribersAsync(message);
                     _logger.LogWarning("Обнаружено {Count} проблемных пакетов КТРУ", problemPackages.Count);
                 }
@@ -58,6 +58,7 @@ namespace IntegrationReportSbAstBot.Class.Jobs
 
         /// <summary>
         /// Отправляет алерт подписчикам
+        /// <paramref name="message"/><paramref name="message"/>
         /// </summary>
         private async Task SendAlertToSubscribersAsync(string message)
         {

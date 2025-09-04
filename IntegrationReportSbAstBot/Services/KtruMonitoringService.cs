@@ -24,10 +24,10 @@ namespace IntegrationReportSbAstBot.Services
                 // Один запрос для получения пакетов, висящих больше 1 дня
                 const string sql = @"
                     SELECT 
-                        Id as PackageId,
+                        IdLoad as PackageId,
                         CreateDate,
                         DATEDIFF(day, CreateDate, GETDATE()) as DaysPending,
-                        FileName as PackageSize -- или другое поле для размера, если нужно
+                        UpdateDate
                     FROM [CDB].[dbo].[UnIntFileLoad]
                     WHERE entitytype = 'nsiKTRUs' 
                     AND loadstatus = 1
@@ -49,34 +49,17 @@ namespace IntegrationReportSbAstBot.Services
         }
 
         /// <summary>
-        /// Проверяет, есть ли проблемные пакеты
-        /// </summary>
-        /// <returns>True если есть проблемные пакеты</returns>
-        public async Task<bool> HasProblematicPackagesAsync()
-        {
-            var packages = await GetProblematicKtruPackagesAsync();
-            return packages.Any();
-        }
-
-        /// <summary>
         /// Форматирует данные мониторинга в текстовое сообщение
         /// </summary>
         /// <param name="problemPackages">Список проблемных пакетов</param>
         /// <returns>Отформатированное сообщение</returns>
-        public string FormatMonitoringMessage(List<KtruPackageInfo> problemPackages)
+        public static string FormatMonitoringMessage(List<KtruPackageInfo> problemPackages)
         {
             var message = new System.Text.StringBuilder();
 
             message.AppendLine("📊 <b>Мониторинг пакетов КТРУ</b>");
             message.AppendLine($"⏰ Дата проверки: {DateTime.Now:dd.MM.yyyy HH:mm}");
             message.AppendLine();
-
-            if (problemPackages.Count == 0)
-            {
-                message.AppendLine("✅ <b>Все пакеты КТРУ обработаны успешно</b>");
-                message.AppendLine("ℹ️ Нет пакетов, висящих более 1 дня");
-                return message.ToString();
-            }
 
             message.AppendLine($"🚨 <b>Обнаружено проблемных пакетов: {problemPackages.Count}</b>");
             message.AppendLine("⚠️ Эти пакеты висят в статусе обработки более 1 дня:");
