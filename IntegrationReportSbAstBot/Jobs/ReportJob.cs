@@ -76,7 +76,7 @@ namespace IntegrationReportSbAstBot.Jobs
                 await File.WriteAllTextAsync(filePath, htmlReport, Encoding.UTF8);
 
                 // Отправляем отчеты всем подписчикам
-                var tasks = subscribers.Select(chatId => SendReportToUserAsync(chatId, messageText, filePath));
+                var tasks = subscribers.Select(chatId => SendDocumentAsync(chatId, filePath, messageText));
                 await Task.WhenAll(tasks);
 
                 // Удаляем временный файл
@@ -102,9 +102,9 @@ namespace IntegrationReportSbAstBot.Jobs
         /// </summary>
         /// <param name="chatId">Идентификатор чата пользователя</param>
         /// <param name="messageText">Текстовое сообщение с краткой информацией</param>
-        /// <param name="bodyHtml">Путь к HTML файлу отчета</param>
+        /// <param name="pathFile">Путь к HTML файлу отчета</param>
         /// <returns>Асинхронная задача</returns>
-        private async Task SendReportToUserAsync(long chatId, string messageText, string bodyHtml)
+        private async Task SendReportToUserAsync(long chatId, string messageText, string pathFile)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace IntegrationReportSbAstBot.Jobs
                     parseMode: ParseMode.Html);
 
                 // Затем отправляем документ
-                await SendDocumentAsync(chatId, bodyHtml);
+                //await SendDocumentAsync(chatId, pathFile);
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)
             {
@@ -132,27 +132,27 @@ namespace IntegrationReportSbAstBot.Jobs
         /// Отправляет HTML документ отчета пользователю Telegram
         /// </summary>
         /// <param name="chatId">Идентификатор чата пользователя</param>
-        /// <param name="bodyHtml">Путь к HTML файлу или содержимое файла</param>
+        /// <param name="pathFile">Путь к HTML файлу или содержимое файла</param>
         /// <returns>Асинхронная задача</returns>
-        private async Task SendDocumentAsync(long chatId, string bodyHtml)
+        private async Task SendDocumentAsync(long chatId, string pathFile, string textMessage)
         {
             try
             {
                 string fileName = $"report_{DateTime.Now:yyyyMMdd}.html";
 
                 // Если bodyHtml это путь к файлу
-                if (File.Exists(bodyHtml))
+                if (File.Exists(pathFile))
                 {
-                    using var fileStream = new FileStream(bodyHtml, FileMode.Open, FileAccess.Read);
+                    using var fileStream = new FileStream(pathFile, FileMode.Open, FileAccess.Read);
                     await _bot.SendDocument(
                         chatId: chatId,
                         document: new InputFileStream(fileStream, fileName),
-                        caption: "Отчет в формате HTML");
+                        caption: "Отчет в формате HTML." + textMessage);
                 }
                 else
                 {
                     // Если bodyHtml это содержимое файла
-                    var fileBytes = Encoding.UTF8.GetBytes(bodyHtml);
+                    var fileBytes = Encoding.UTF8.GetBytes(pathFile);
                     using var stream = new MemoryStream(fileBytes);
                     await _bot.SendDocument(
                         chatId: chatId,
