@@ -65,7 +65,7 @@ namespace IntegrationReportSbAstBot.Jobs
                 }
 
                 // Формируем сообщение
-                var messageText = $"📈 Отчёт по важным пакетам в количестве ({generateReportData.SummaryOfPackages.Sum(x => x.Amount)} шт.) за последние сутки";
+                var messageText = $"по важным пакетам в количестве ({generateReportData.SummaryOfPackages.Sum(x => x.Amount)} шт.) за последние сутки";
 
                 // Формируем HTML отчет
                 var htmlReport = _reportHtmlService.GenerateHtmlReport(generateReportData);
@@ -147,17 +147,17 @@ namespace IntegrationReportSbAstBot.Jobs
                     await _bot.SendDocument(
                         chatId: chatId,
                         document: new InputFileStream(fileStream, fileName),
-                        caption: "Отчет в формате HTML." + textMessage);
+                        caption: "📈 Отчет в формате HTML " + textMessage);
                 }
                 else
                 {
                     // Если bodyHtml это содержимое файла
                     var fileBytes = Encoding.UTF8.GetBytes(pathFile);
-                    using var stream = new MemoryStream(fileBytes);
+                    await using var stream = new MemoryStream(fileBytes);
                     await _bot.SendDocument(
                         chatId: chatId,
                         document: new InputFileStream(stream, fileName),
-                        caption: "Отчет в формате HTML");
+                        caption: "📈 Отчет в формате HTML " + textMessage);
                 }
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 403)

@@ -37,7 +37,8 @@ namespace IntegrationReportSbAstBot.Services
                 WHERE CreateDate >= @DateFrom 
                   AND (docType LIKE 'epNotificationE%' 
                        OR docType LIKE 'cpContract%' 
-                       OR docType LIKE '%FinalPart%')
+                       OR docType LIKE '%FinalPart%'
+                       OR docType LIKE '%SubmitOffers%')
                   AND state IN (-1, -2)
                 GROUP BY docType";
 
@@ -58,7 +59,8 @@ namespace IntegrationReportSbAstBot.Services
                 WHERE CreateDate >= @DateFrom
                   AND (docType LIKE 'epNotificationE%' 
                        OR docType LIKE 'cpContract%' 
-                       OR docType LIKE '%FinalPart%')
+                       OR docType LIKE '%FinalPart%'
+                       OR docType LIKE '%SubmitOffers%')
                   AND state IN (-1, -2)";
 
                 var packages = (await connection.QueryAsync<PackageInfo>(
