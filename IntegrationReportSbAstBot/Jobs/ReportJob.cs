@@ -55,8 +55,10 @@ namespace IntegrationReportSbAstBot.Jobs
                     return;
                 }
 
+
+                var dateFrom = DateTime.Now.AddDays(-1);
                 // Генерируем данные отчета
-                var generateReportData = await _reportService.GenerateReportAsync();
+                var generateReportData = await _reportService.GenerateReportAsync(dateFrom);
 
                 if (generateReportData.Packages.Count == 0)
                 {

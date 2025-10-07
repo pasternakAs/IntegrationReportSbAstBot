@@ -39,12 +39,18 @@ namespace IntegrationReportSbAstBot.CommandHandler
 
             // Формируем персонализированный текст помощи в зависимости от типа чата
             var textHelp = chatType == ChatType.Private
-                ? "Доступные команды:\n/start - начать работу\n/subscribe - подписаться на рассылку\n/unsubscribe - отписаться от рассылки" +
-                  "\n/procedure номер_процедуры - инфа по процедуре\n/help - помощь"
+                ? "Доступные команды:\n" +
+                    "/start - начать работу\n" +
+                    "/subscribe - подписаться на рассылку\n" +
+                    "/unsubscribe - отписаться от рассылки\n" +
+                    "/procedure номер_процедуры - инфа по процедуре\n" +
+                    "/geterrorintegration - получить все ошибки интеграции\n" +
+                    "/help - помощь"
                 : "Доступные команды:\n/subscribe - подписаться на рассылку\n" +
-                "/unsubscribe - отписаться от рассылки" +
-                  "\n/procedure номер_процедуры - инфа по процедуре\n" +
-                  "/help - помощь";
+                    "/unsubscribe - отписаться от рассылки\n" +
+                    "/procedure номер_процедуры - инфа по процедуре\n" +
+                    "/geterrorintegration - получить все ошибки интеграции\n" +
+                    "/help - помощь";
 
             // Отправляем справочную информацию пользователю
             await _botClient.SendMessage(

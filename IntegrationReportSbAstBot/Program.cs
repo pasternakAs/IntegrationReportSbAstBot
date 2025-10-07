@@ -78,6 +78,7 @@ builder.Services.AddScoped<ICommandHandler, ProcedureCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, EnableJobCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, DisableJobCommandHandler>();
 builder.Services.AddScoped<ICommandHandler, JobsStatusCommandHandler>();
+builder.Services.AddScoped<ICommandHandler, GetErrorIntegrationsCommandHandler>();
 
 // Quartz
 builder.Services.AddQuartz(q =>

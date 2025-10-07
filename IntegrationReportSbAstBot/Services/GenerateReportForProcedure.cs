@@ -176,23 +176,6 @@ namespace IntegrationReportSbAstBot.Services
         }
 
         /// <summary>
-        /// Экранирует специальные символы HTML для корректного отображения в Telegram
-        /// </summary>
-        /// <param name="text">Текст для экранирования</param>
-        /// <returns>Экранированный текст</returns>
-        private static string EscapeHtml(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return text;
-
-            return text.Replace("&", "&amp;")
-                      .Replace("<", "<")
-                      .Replace(">", ">")
-                      .Replace("\"", "&quot;")
-                      .Replace("'", "&#39;");
-        }
-
-        /// <summary>
         /// Генерирует детализированную таблицу по каждому пакету.
         /// Для каждого пакета выводятся:
         ///  - идентификатор процедуры (ObjectId),

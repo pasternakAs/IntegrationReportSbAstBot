@@ -19,22 +19,26 @@ namespace IntegrationReportSbAstBot.Services
         private readonly ISqlConnectionFactory _sqlConnectionFactory = sqlConnectionFactory;
         private readonly ILogger<ReportService> _logger = logger;
 
-        public async Task<ReportDataClass> GenerateReportAsync(CancellationToken cancellationToken = default)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dateFrom"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<ReportDataClass> GenerateReportAsync(DateTime? dateFrom, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Генерация отчета начата {Time}", DateTime.Now);
 
             try
             {
-                using var connection = _sqlConnectionFactory.CreateConnection();
-
-                var dateFrom = DateTime.Now.AddDays(-1);
+                await using var connection = _sqlConnectionFactory.CreateConnection();
 
                 // Сводка
                 const string summarySql = @"
                 SELECT COUNT(*) as Amount,
                        docType as TypeDocument
                 FROM dbo.docOOSdoc WITH (NOLOCK)
-                WHERE CreateDate >= @DateFrom 
+                WHERE (@DateFrom IS NULL OR CreateDate >= @DateFrom)
                   AND (docType LIKE 'epNotificationE%' 
                        OR docType LIKE 'cpContract%' 
                        OR docType LIKE '%FinalPart%'
@@ -56,7 +60,7 @@ namespace IntegrationReportSbAstBot.Services
                        ObjectId,
                        COALESCE(lastSendDate, CreateDate) as lastSendDate
                 FROM dbo.docOOSdoc WITH (NOLOCK)
-                WHERE CreateDate >= @DateFrom
+              WHERE (@DateFrom IS NULL OR CreateDate >= @DateFrom)
                   AND (docType LIKE 'epNotificationE%' 
                        OR docType LIKE 'cpContract%' 
                        OR docType LIKE '%FinalPart%'
